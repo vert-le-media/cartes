@@ -1032,7 +1032,7 @@
     } catch (e) { /* plein écran CSS seul */ }
     fermerBulle();
   }
-  $("z-plein").onclick = () => basculerPleinEcran(!pleinEcran);
+  if ($("z-plein")) $("z-plein").onclick = () => basculerPleinEcran(!pleinEcran); // bouton facultatif (retiré des data centers)
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && pleinEcran) basculerPleinEcran(false); });
   document.addEventListener("keydown", ev => { if (ev.key === "Escape" && pleinEcran) basculerPleinEcran(false); });
 
@@ -1048,4 +1048,22 @@
     const r = cv.getBoundingClientRect(), k = r.width + "x" + r.height;
     if (k !== tailleVue && r.width && r.height) { tailleVue = k; taille(); }
   }).observe(cv);
+
+  // ---------- Hauteur automatique de l'iframe (page habillée intégrée dans un article) ----------
+  // La page envoie sa hauteur à la page parente (message { type: "vert-carte-hauteur", h }) à chaque changement
+  // (largeur, méthodologie dépliée…) ; un petit script dans l'article ajuste la hauteur de l'iframe.
+  // Rien n'est envoyé en plein écran (la carte couvre alors la fenêtre).
+  if (HABILLE && window.parent !== window) {
+    // hauteur = bas du bloc habillé (pas scrollHeight, qui ne descend jamais sous la hauteur actuelle de l'iframe)
+    const hab = document.querySelector(".habillage");
+    let hEnvoyee = 0;
+    const envoyerHauteur = () => {
+      if (pleinEcran) return;
+      const h = Math.ceil(hab.getBoundingClientRect().bottom + window.scrollY) + 2;
+      if (h && h !== hEnvoyee) { hEnvoyee = h; window.parent.postMessage({ type: "vert-carte-hauteur", h }, "*"); }
+    };
+    new ResizeObserver(envoyerHauteur).observe(hab);
+    addEventListener("load", envoyerHauteur);
+    envoyerHauteur();
+  }
 })();
