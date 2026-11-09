@@ -36,6 +36,13 @@
   const ATTENTE_RENDU = 140;  // ms sans geste avant le rendu complet
 
   const D = window.VIS_BASE;
+  // Option VIS_DATA.cadrage_mobile = {x: [x0, x1], encarts: {code: [x, y, l, h]}} : sur mobile (fond 350), la vue
+  // d'ensemble ne montre que la bande x0–x1 du fond (plus zoomée, ex. sans la Corse) ; les encarts d'outre-mer
+  // y sont replacés pour rester entiers. La carte s'allonge d'autant ; on peut toujours se déplacer jusqu'aux bords.
+  const CADRAGE_M = (DATA && DATA.cadrage_mobile) || null;
+  if (CADRAGE_M && CADRAGE_M.encarts) Object.assign(D.systemes["350"].encarts, CADRAGE_M.encarts);
+  // Option VIS_DATA.encarts_ordinateur = {code: [x, y, l, h]} : encarts du fond ordinateur (700) replacés
+  if (DATA && DATA.encarts_ordinateur) Object.assign(D.systemes["700"].encarts, DATA.encarts_ordinateur);
   const NIVEAUX = D.niveaux_def; // [[nom, tolérance m], …] du plus grossier au plus fin
   const $ = id => document.getElementById(id);
   const cv = $("carte");
@@ -315,15 +322,17 @@
     const change = !sysCourant || sysCourant.nom !== nom;
     sysCourant = systeme(nom);
     const ajuste = HABILLE && !pleinEcran;
-    if (ajuste) { H = Math.round(W * sysCourant.S.H_cadre / sysCourant.S.W); cv.style.height = H + "px"; }
+    const largeurVue = CADRAGE_M && nom === "350" ? CADRAGE_M.x[1] - CADRAGE_M.x[0] : sysCourant.S.W; // largeur montrée à z = 1
+    if (ajuste) { H = Math.round(W * sysCourant.S.H_cadre / largeurVue); cv.style.height = H + "px"; }
     cv.width = Math.round(W * dpr);
     cv.height = Math.round(H * dpr);
-    base = ajuste ? W / sysCourant.S.W : Math.min(W / sysCourant.S.W, H / sysCourant.S.H_cadre) * 0.96;
+    base = ajuste ? W / largeurVue : Math.min(W / sysCourant.S.W, H / sysCourant.S.H_cadre) * 0.96;
     vc = null;
     if (change) { surligne = null; reset(); } else { contraindre(); rendreBientot(); }
   }
   function reset() {
-    z = 1; tx = (W - sysCourant.S.W * base) / 2; ty = (H - sysCourant.S.H_cadre * base) / 2;
+    z = 1; tx = CADRAGE_M && sysCourant.nom === "350" && HABILLE && !pleinEcran ? -CADRAGE_M.x[0] * base
+                                                                              : (W - sysCourant.S.W * base) / 2; ty = (H - sysCourant.S.H_cadre * base) / 2;
     rendreBientot();
   }
   // Cadre : on ne peut ni dézoomer sous la vue d'ensemble ni sortir du fond dessiné.
@@ -406,9 +415,23 @@
     else if (L && L.cote) c.stroke(L.cote);
     if (e.om) {
       let bas = 0;
-      let fs = 10 * px; // taille de texte : 10 px écran, réduite pour TOUS les noms si l'un déborde de son encart
-      c.font = "500 " + fs + "px " + POLICE;
-      for (const t in S.encarts) fs = Math.min(fs, 10 * px * S.encarts[t][2] / Math.max(S.encarts[t][2], c.measureText(D.territoires[t].nom).width));
+      // taille des noms (px écran) : VIS_DATA.taille_noms_encarts = [mobile, ordinateur] (10 px par défaut), réduite
+      // pour TOUS les noms si l'un manque de place : en largeur, jusqu'au cadre voisin à sa droite (5 px d'écart),
+      // sans dépasser son cadre de plus de 15 % ; en hauteur, sans toucher le cadre au-dessus (2 px d'écart).
+      const TN = (DATA && DATA.taille_noms_encarts) || [10, 10], fs0 = (W >= SEUIL_MOBILE ? TN[1] : TN[0]) * px;
+      let fs = fs0;
+      c.font = "500 " + fs0 + "px " + POLICE;
+      for (const t in S.encarts) {
+        const [bx, by, bw] = S.encarts[t], lt = c.measureText(D.territoires[t].nom).width;
+        let place = bw * 1.15, haut = Infinity;
+        for (const u in S.encarts) {
+          if (u === t) continue;
+          const [x2, y2, w2, h2] = S.encarts[u];
+          if (x2 > bx && y2 <= by && y2 + h2 > by - fs0 - 3 * px) place = Math.min(place, x2 - bx - 5 * px); // cadre à droite du nom
+          if (x2 < bx + Math.max(bw, lt) && x2 + w2 > bx && y2 + h2 <= by) haut = Math.min(haut, by - (y2 + h2)); // cadre au-dessus
+        }
+        fs = Math.min(fs, fs0 * Math.min(1, place / lt), (haut - 5 * px) / 0.95);
+      }
       for (const t in S.encarts) {
         const [bx, by, bw, bh] = S.encarts[t];
         bas = Math.max(bas, by + bh);
@@ -570,7 +593,8 @@
     if (complet) {
       if (op) h += '<div class="tt-ligne"><span>Entreprise</span> ' + echap(courtTxt(op, 140)) + "</div>";
       if (statut) h += '<div class="tt-ligne"><span>Statut</span> ' + echap(courtTxt(statut, 170)) + "</div>";
-      if (texte) h += '<div class="tt-texte">' + echap(courtTxt(texte, 260)) + "</div>";
+      // texte : les retours à la ligne des données sont gardés (CSS pre-line) ; plus long dans l'infobulle épinglée (elle défile)
+      if (texte) h += '<div class="tt-texte">' + echap(courtTxt(texte, epinglee ? 700 : 260)) + "</div>";
       if (drap && drap.length) h += '<div class="tt-drap">' + drap.map(d => "<span>" + echap(d) + "</span>").join("") + "</div>";
       if (urls && urls.length) h += epinglee
         ? '<div class="tt-liens">' + urls.slice(0, 4).map(u => '<a href="' + echap(u) + '" target="_blank" rel="noopener">' +
@@ -630,7 +654,7 @@
       etiquettes(ch, 9) +
       (op ? '<div class="fi-champ"><span>Entreprise</span>' + echap(op) + "</div>" : "") +
       (statut ? '<div class="fi-champ"><span>Statut</span>' + echap(statut) + "</div>" : "") +
-      (texte ? '<div class="fi-champ"><span>Description du collectif</span>' + echap(texte) + "</div>" : "") +
+      (texte ? '<div class="fi-champ fi-texte"><span>Description du collectif</span>' + echap(texte) + "</div>" : "") +
       (drap && drap.length ? '<div class="tt-drap">' + drap.map(d => "<span>" + echap(d) + "</span>").join("") + "</div>" : "") +
       (urls && urls.length ? '<div class="fi-champ"><span>Sources</span><div class="fi-sources">' + urls.map((u, j) => {
         // même site cité plusieurs fois : numéroté (lemonde.fr · 2)
@@ -943,7 +967,7 @@
     leg.innerHTML = (PIED ? "" : "<b>" + echap(DATA.titre) + "</b>") +
       (DATA.sous_titre ? '<div class="leg-sous">' + echap(DATA.sous_titre) + "</div>" : "") +
       (PIED ? colonnesLegende() : '<div class="leg-classes leg-filtre">' + CATS.map((C, k) => ligneLegende(k)).join("") + "</div>") +
-      '<div class="leg-astuce">' + (matchMedia("(hover: hover)").matches ? "Cliquer" : "Toucher") +
+      '<div class="leg-astuce">' + (matchMedia("(hover: hover)").matches ? "Cliquez sur" : "Touchez") +
       " une catégorie pour la masquer</div>";
     // source et dates : ligne de crédit sous la carte (hors de la légende, qui doit rester courte)
     const credit = PIED || document.createElement("div");

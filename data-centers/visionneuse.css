@@ -159,7 +159,8 @@ body.plein-ecran .cadre { position: fixed; inset: 0; z-index: 50; height: 100%; 
 .tt-cat { color: var(--doux); font-size: 11px; }
 .tt-ligne { font-size: 11.5px; margin-top: 3px; }
 .tt-ligne span { color: var(--doux); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
-.tt-texte { font-size: 11.5px; margin-top: 4px; }
+.tt-texte { font-size: 11.5px; margin-top: 4px; white-space: pre-line; }
+.fi-texte { white-space: pre-line; }
 .tt-drap { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
 .tt-drap span { font-size: 10px; padding: 1px 6px; border-radius: 9px; background: var(--survol); color: var(--texte); }
 .tt-liens { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 5px; font-size: 11px; }
