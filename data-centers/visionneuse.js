@@ -36,10 +36,13 @@
   const ATTENTE_RENDU = 140;  // ms sans geste avant le rendu complet
 
   const D = window.VIS_BASE;
-  // Option VIS_DATA.cadrage_mobile = {x: [x0, x1], encarts: {code: [x, y, l, h]}} : sur mobile (fond 350), la vue
-  // d'ensemble ne montre que la bande x0–x1 du fond (plus zoomée, ex. sans la Corse) ; les encarts d'outre-mer
-  // y sont replacés pour rester entiers. La carte s'allonge d'autant ; on peut toujours se déplacer jusqu'aux bords.
+  // Options VIS_DATA.cadrage_mobile (fond 350) et VIS_DATA.cadrage_ordinateur (fond 700) =
+  //   {x: [x0, x1], y: [y0, y1] (facultatif), encarts: {code: [x, y, l, h]} (facultatif)} :
+  // page habillée, la vue d'ensemble ne montre que ce rectangle du fond (plus zoomée, ex. sans la Corse) et la carte
+  // prend ses proportions ; les encarts d'outre-mer peuvent y être replacés. On peut toujours glisser jusqu'aux bords du fond.
   const CADRAGE_M = (DATA && DATA.cadrage_mobile) || null;
+  const CADRAGES = { "350": CADRAGE_M, "700": (DATA && DATA.cadrage_ordinateur) || null };
+  if (CADRAGES["700"] && CADRAGES["700"].encarts) Object.assign(D.systemes["700"].encarts, CADRAGES["700"].encarts);
   if (CADRAGE_M && CADRAGE_M.encarts) Object.assign(D.systemes["350"].encarts, CADRAGE_M.encarts);
   // Option VIS_DATA.encarts_ordinateur = {code: [x, y, l, h]} : encarts du fond ordinateur (700) replacés
   if (DATA && DATA.encarts_ordinateur) Object.assign(D.systemes["700"].encarts, DATA.encarts_ordinateur);
@@ -322,17 +325,24 @@
     const change = !sysCourant || sysCourant.nom !== nom;
     sysCourant = systeme(nom);
     const ajuste = HABILLE && !pleinEcran;
-    const largeurVue = CADRAGE_M && nom === "350" ? CADRAGE_M.x[1] - CADRAGE_M.x[0] : sysCourant.S.W; // largeur montrée à z = 1
-    if (ajuste) { H = Math.round(W * sysCourant.S.H_cadre / largeurVue); cv.style.height = H + "px"; }
+    const b = vueInitiale(); // rectangle du fond montré à z = 1
+    if (ajuste) { H = Math.round(W * b.h / b.w); cv.style.height = H + "px"; }
     cv.width = Math.round(W * dpr);
     cv.height = Math.round(H * dpr);
-    base = ajuste ? W / largeurVue : Math.min(W / sysCourant.S.W, H / sysCourant.S.H_cadre) * 0.96;
+    base = ajuste ? W / b.w : Math.min(W / sysCourant.S.W, H / sysCourant.S.H_cadre) * 0.96;
     vc = null;
     if (change) { surligne = null; reset(); } else { contraindre(); rendreBientot(); }
   }
+  function vueInitiale() {
+    const S = sysCourant.S, c = HABILLE && !pleinEcran && CADRAGES[sysCourant.nom];
+    return c ? { x0: c.x[0], w: c.x[1] - c.x[0], y0: c.y ? c.y[0] : 0, h: c.y ? c.y[1] - c.y[0] : S.H_cadre, cadre: true }
+             : { x0: 0, w: S.W, y0: 0, h: S.H_cadre, cadre: false };
+  }
   function reset() {
-    z = 1; tx = CADRAGE_M && sysCourant.nom === "350" && HABILLE && !pleinEcran ? -CADRAGE_M.x[0] * base
-                                                                              : (W - sysCourant.S.W * base) / 2; ty = (H - sysCourant.S.H_cadre * base) / 2;
+    const b = vueInitiale();
+    z = 1;
+    if (b.cadre) { tx = -b.x0 * base; ty = -b.y0 * base; }
+    else { tx = (W - sysCourant.S.W * base) / 2; ty = (H - sysCourant.S.H_cadre * base) / 2; }
     rendreBientot();
   }
   // Cadre : on ne peut ni dézoomer sous la vue d'ensemble ni sortir du fond dessiné.
