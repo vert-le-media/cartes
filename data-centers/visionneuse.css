@@ -295,3 +295,12 @@ body.embed:has(.habillage) { display: block; height: auto; }
 .habillage .leg-ligne > span:not(.pt-box) { margin-top: max(0px, calc((var(--pt, 14px) - 1.3em) / 2)); }
 /* libellés des textes libres (« Localisation : », « Date : »…) en medium */
 .t-lib { font-weight: 500; }
+/* 2026-11-09 : page habillée : fondu de la carte vers le blanc en haut et en bas (bord du cadrage moins brutal,
+   comme le fondu des fonds d'origine). Épaisseur : --fondu (14 px ordinateur, 12 px mobile) */
+.habillage .cadre canvas {
+  --fondu: 14px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fondu), #000 calc(100% - var(--fondu)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fondu), #000 calc(100% - var(--fondu)), transparent 100%);
+}
+@media (max-width: 760px) { .habillage .cadre canvas { --fondu: 12px; } }
+body.plein-ecran .habillage .cadre canvas { -webkit-mask-image: none; mask-image: none; }
