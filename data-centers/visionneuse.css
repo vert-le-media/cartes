@@ -288,3 +288,10 @@ body.embed:has(.habillage) { display: block; height: auto; }
   /* recherche : texte d'invite plus petit ; la saisie reste à 16 px, sinon iOS zoome la page au toucher */
   .habillage .recherche input::placeholder { font-size: 13px; }
 }
+
+/* 2026-11-09 : légende habillée, libellé sur 2 lignes : picto aligné sur la 1re ligne (--pt = diamètre du picto) */
+.habillage .leg-ligne { align-items: flex-start; line-height: 1.3; }
+.habillage .leg-ligne > .pt-box { margin-top: max(0px, calc((1.3em - var(--pt, 14px)) / 2)); vertical-align: 0; }
+.habillage .leg-ligne > span:not(.pt-box) { margin-top: max(0px, calc((var(--pt, 14px) - 1.3em) / 2)); }
+/* libellés des textes libres (« Localisation : », « Date : »…) en medium */
+.t-lib { font-weight: 500; }

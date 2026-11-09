@@ -580,6 +580,8 @@
   // Infobulle d'une commune, placée près de (sx, sy) sans sortir du cadre
   const nb = x => x.toLocaleString("fr-FR");
   const ugl = x => x.toLocaleString("fr-FR", { maximumFractionDigits: 3 }) + " µg/L";
+  // texte libre d'un point : « Libellé : » en début de ligne (deux-points précédé d'une espace insécable) en medium
+  const libelles = h => h.replace(/^([^\n:<>]{1,40}?\u00a0:)/gm, '<b class="t-lib">$1</b>');
   const echap = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
   // pastille d'une catégorie (même forme que sur la carte)
   // pastille : le disque du picto (diamètre D px) centré dans une case D × D (le reste du dessin, ombre comprise, déborde)
@@ -604,7 +606,7 @@
       if (op) h += '<div class="tt-ligne"><span>Entreprise</span> ' + echap(courtTxt(op, 140)) + "</div>";
       if (statut) h += '<div class="tt-ligne"><span>Statut</span> ' + echap(courtTxt(statut, 170)) + "</div>";
       // texte : les retours à la ligne des données sont gardés (CSS pre-line) ; plus long dans l'infobulle épinglée (elle défile)
-      if (texte) h += '<div class="tt-texte">' + echap(courtTxt(texte, epinglee ? 700 : 260)) + "</div>";
+      if (texte) h += '<div class="tt-texte">' + libelles(echap(courtTxt(texte, epinglee ? 700 : 260))) + "</div>";
       if (drap && drap.length) h += '<div class="tt-drap">' + drap.map(d => "<span>" + echap(d) + "</span>").join("") + "</div>";
       if (urls && urls.length) h += epinglee
         ? '<div class="tt-liens">' + urls.slice(0, 4).map(u => '<a href="' + echap(u) + '" target="_blank" rel="noopener">' +
@@ -664,7 +666,7 @@
       etiquettes(ch, 9) +
       (op ? '<div class="fi-champ"><span>Entreprise</span>' + echap(op) + "</div>" : "") +
       (statut ? '<div class="fi-champ"><span>Statut</span>' + echap(statut) + "</div>" : "") +
-      (texte ? '<div class="fi-champ fi-texte"><span>Description du collectif</span>' + echap(texte) + "</div>" : "") +
+      (texte ? '<div class="fi-champ fi-texte"><span>Description du collectif</span>' + libelles(echap(texte)) + "</div>" : "") +
       (drap && drap.length ? '<div class="tt-drap">' + drap.map(d => "<span>" + echap(d) + "</span>").join("") + "</div>" : "") +
       (urls && urls.length ? '<div class="fi-champ"><span>Sources</span><div class="fi-sources">' + urls.map((u, j) => {
         // même site cité plusieurs fois : numéroté (lemonde.fr · 2)
@@ -953,7 +955,8 @@
   const leg = $("legende");
   function ligneLegende(k) {
     const C = CATS[k];
-    return '<button type="button" class="leg-ligne" aria-pressed="true" data-k="' + k + '">' + pastille(k, (DATA && DATA.taille_legende) || 14) +
+    const T = (DATA && DATA.taille_legende) || 14; // --pt : picto et 1re ligne du libellé centrés l'un sur l'autre (CSS)
+    return '<button type="button" class="leg-ligne" aria-pressed="true" data-k="' + k + '" style="--pt:' + T + 'px">' + pastille(k, T) +
       '<span class="l-long">' + echap(C.libelle) + " <small>" + nb(C.nb) + "</small></span>" +
       '<span class="l-court">' + echap(C.court || C.libelle) + " <small>" + nb(C.nb) + "</small></span></button>";
   }
