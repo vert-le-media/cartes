@@ -25,3 +25,18 @@ addEventListener("message", function (e) {
 ```
 
 Le script est commun à toutes les cartes de ce dépôt : une seule fois par article suffit, même avec plusieurs cartes.
+
+## nappes
+
+État des nappes souterraines en France métropolitaine, mois par mois (carte animée, glissière temporelle).
+
+- Page : https://vert-le-media.github.io/cartes/nappes/
+- Source : BRGM, MétéEAU Nappes (indicateur piézométrique standardisé, bulletins mensuels de situation hydrogéologique).
+- Mise à jour mensuelle : `2026-11_nappes-brgm/06_scripts/01_telecharger_bsh.py`, `02_preparer_indicateurs.py`,
+  puis copie par `04_copier_depot_github.py` : ne pas modifier les fichiers ici.
+
+Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script de hauteur ci-dessus s'il n'est pas déjà dans l'article) :
+
+```html
+<iframe src="https://vert-le-media.github.io/cartes/nappes/" title="Carte de l'état des nappes souterraines en France" width="100%" height="1000" style="border:0; max-width:100%;" loading="lazy"> </iframe>
+```

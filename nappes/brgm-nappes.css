@@ -1,0 +1,160 @@
+/* brgm-nappes.css — carte animée de l'état des nappes, habillage Vert (2026-11-09).
+   Repris de l'habillage de la carte data centers (visionneuse.css, .habillage / .hab-*) :
+   Vend Sans (police du site vert.eco), titre gras noir 25 px (22 px sur mobile), légende 13 px,
+   source 12 px en Light, logo Vert en bas à droite.
+   Cadre toujours en clair (même si le lecteur est en mode sombre). */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #fff; }
+body { padding: 0; }
+
+.brgm {
+  --police: "Vend Sans", "Helvetica Neue", Arial, sans-serif;
+  --texte: #000;
+  --doux: #5d6b6e;
+  --bord: #dfe5e6;
+  --vert: #004352;      /* boutons, curseur (comme la carte data centers) */
+  --survol: #fdf0e9;
+  --piste: #dfe5e6;
+  color-scheme: light;
+  font: 400 13px/1.45 var(--police);
+  color: var(--texte);
+  background: #fff;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  padding: 14px 16px 10px;
+}
+
+/* ---- Titre, chapô ---- */
+.brgm__titre {
+  margin: 0 0 6px;
+  font: 700 25px/1.2 var(--police);
+  color: #000;
+  text-wrap: balance;
+}
+.brgm__chapo { margin: 0 0 8px; font: 400 14px/1.35 var(--police); color: #000; }
+
+/* ---- Légende ---- */
+.brgm__legende { margin: 0 0 8px; font-size: 13px; line-height: 1.3; color: #000; }
+/* 2 colonnes remplies de haut en bas : très haut -> autour de la moyenne | modérément bas -> très bas ; « sans nappe » dessous */
+.brgm__leg-couleurs { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, auto); grid-auto-flow: column; gap: 2px 16px; }
+.brgm__leg-pictos { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.brgm__leg-item { display: inline-flex; align-items: flex-start; gap: 6px; }
+.brgm__leg-carre {
+  flex: none; width: 12px; height: 12px; margin-top: 0.1em;
+  border-radius: 2px; border: 1px solid rgba(0, 0, 0, .15);
+}
+.brgm__leg-zero { grid-row: 5; grid-column: 1 / -1; }
+.brgm__leg-sep { height: 1px; background: var(--bord); margin: 6px 0; }
+.brgm__leg-soustitre { font-weight: 500; margin: 0 0 3px; }
+.brgm__leg-picto { flex: none; width: 17px; height: 17px; }
+.brgm__leg-pictos .brgm__leg-item { align-items: center; }
+
+/* ---- La carte (couches empilées) ---- */
+.brgm__carte { position: relative; width: 100%; }
+.brgm__fond { display: block; width: 100%; height: auto; }
+.brgm__zones, .brgm__frontieres, .brgm__pictos {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+.brgm__frontieres, .brgm__pictos { pointer-events: none; }
+.brgm__frontieres svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* noms des villes : police Vert à la place de la Marr Sans Cond du SVG d'origine, halo blanc */
+.brgm__frontieres text {
+  font-family: var(--police) !important;
+  paint-order: stroke; stroke: #fff; stroke-width: 2; stroke-linejoin: round;
+}
+.brgm__zone { stroke: rgba(255, 255, 255, .35); stroke-width: .15; cursor: pointer; }
+.brgm__zone:hover, .brgm__zone.is-actif { stroke: #000; stroke-width: .6; }
+
+/* ---- Mois affiché (en haut à droite de la carte) ---- */
+.brgm__date {
+  position: absolute; top: 6px; right: 8px;
+  font: 700 20px/1.1 var(--police);
+  color: #000;
+  text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+  pointer-events: none;
+}
+.brgm__date::first-letter { text-transform: uppercase; }
+
+/* ---- Lecture + glissière ---- */
+.brgm__controls { display: flex; align-items: center; gap: 10px; margin: 8px 2px 0; }
+.brgm__play {
+  flex: none; width: 36px; height: 36px; padding: 0;
+  border: 1px solid var(--bord); border-radius: 50%;
+  background: #fff; color: var(--vert); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.brgm__play:hover { background: var(--survol); }
+.brgm__play::before {
+  content: ""; width: 0; height: 0; margin-left: 3px;
+  border-left: 11px solid currentColor; border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+}
+.brgm__play.is-playing::before {
+  width: 10px; height: 12px; margin-left: 0; border: 0;
+  border-left: 3px solid currentColor; border-right: 3px solid currentColor;
+}
+.brgm__slider {
+  flex: 1 1 auto; -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 3px; background: var(--piste); cursor: pointer; margin: 0;
+}
+.brgm__slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--vert); border: 3px solid #fff; box-shadow: 0 0 2px rgba(0, 0, 0, .45);
+}
+.brgm__slider::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--vert); border: 3px solid #fff; box-shadow: 0 0 2px rgba(0, 0, 0, .45);
+}
+.brgm__slider:focus-visible { outline: 2px solid var(--vert); outline-offset: 4px; }
+
+/* ---- Infobulle (style Vert : carte blanche, titre en vert foncé) ---- */
+.brgm__tooltip {
+  position: absolute; z-index: 5; pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  width: max-content; max-width: 230px;
+  background: #fff; color: #000;
+  border: 1px solid var(--bord); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px; line-height: 1.4;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  opacity: 0; transition: opacity .08s;
+}
+.brgm__tooltip.is-visible { opacity: 1; }
+.brgm__tooltip.is-dessous { transform: translate(-50%, 14px); }
+.brgm__tt-mois { color: var(--doux); font-size: 11px; }
+.brgm__tt-titre { display: block; font-weight: 600; font-size: 13px; color: var(--vert); margin: 0 0 3px; }
+.brgm__tt-ligne { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-weight: 500; }
+.brgm__tt-icon { flex: 0 0 18px; display: inline-flex; justify-content: center; align-items: center; }
+.brgm__tt-icon i { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .15); }
+.brgm__tooltip .brgm__leg-picto { width: 17px; height: 17px; }
+
+/* ---- Pied : source + logo ---- */
+.brgm__pied { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.brgm__source { min-width: 0; font-size: 12px; font-weight: 300; line-height: 1.35; color: #000; }
+.brgm__source a { color: inherit; }
+.brgm__logo { flex: none; display: block; width: 72px; height: auto; }
+
+/* ---- Mobile ---- */
+@media (max-width: 760px) {
+  .brgm { padding: 10px 10px 8px; }
+  .brgm__titre { font-size: 22px; }
+  .brgm__chapo { font-size: 13px; }
+  .brgm__leg-couleurs { gap: 2px 10px; }
+  .brgm__logo { width: 60px; }
+  .brgm__pied { flex-direction: column; align-items: stretch; gap: 6px; }
+  .brgm__logo { align-self: flex-end; }
+}
+@media (max-width: 500px) {
+  .brgm__date { font-size: 16px; }
+}
+
+/* ---- 2026-11-09 : fondu de la carte vers le blanc en haut et en bas (comme la carte data centers) ----
+   Appliqué aux couches de la carte seulement (pas au mois affiché ni à l'infobulle). Épaisseur : --fondu */
+.brgm__fond, .brgm__zones, .brgm__frontieres, .brgm__pictos {
+  --fondu: 14px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fondu), #000 calc(100% - var(--fondu)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fondu), #000 calc(100% - var(--fondu)), transparent 100%);
+}
+@media (max-width: 760px) { .brgm__fond, .brgm__zones, .brgm__frontieres, .brgm__pictos { --fondu: 12px; } }

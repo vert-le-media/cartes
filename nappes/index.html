@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>État des nappes souterraines en France | Vert</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vend+Sans:ital,wght@0,300..700;1,300..700&display=swap">
+<link rel="stylesheet" href="brgm-nappes.css">
+</head>
+<body>
+
+<!-- Habillage Vert (comme la carte data centers) : titre, chapô, légende, carte, glissière, source + logo.
+     Couleurs des secteurs = classes du BRGM (inchangées). Dernier mois : rempli par brgm-nappes.js d'après indicateurs.json. -->
+<div id="brgm-nappes" class="brgm">
+
+  <h2 class="brgm__titre">L'état des nappes souterraines en France, mois par mois, jusqu'en <span class="brgm__derniere">octobre 2026</span></h2>
+  <p class="brgm__chapo">Niveau des nappes par rapport aux normales de saison. Déplacez la glissière pour remonter le temps&nbsp;; survolez ou touchez un secteur pour le détail.</p>
+
+  <div class="brgm__legende"></div>
+
+  <div class="brgm__carte">
+    <img class="brgm__fond" alt="Fond de carte de la France"
+         data-clair-350="FOND-350-CLAIR.webp"
+         data-sombre-350="FOND-350-SOMBRE.webp"
+         data-clair-700="700-CLAIR.webp"
+         data-sombre-700="700-SOMBRE.webp"
+         src="FOND-350-CLAIR.webp">
+    <svg class="brgm__zones" viewBox="0 0 350 481.13" xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="brgm__frontieres" aria-hidden="true"></div>
+    <svg class="brgm__pictos" viewBox="0 0 350 481.13" xmlns="http://www.w3.org/2000/svg"
+         preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <div class="brgm__date"></div>
+    <div class="brgm__tooltip"></div>
+  </div>
+
+  <div class="brgm__controls">
+    <button class="brgm__play" type="button" aria-label="Lecture"></button>
+    <input class="brgm__slider" type="range" min="0" max="0" value="0" aria-label="Choisir le mois">
+  </div>
+
+  <footer class="brgm__pied">
+    <span class="brgm__source">Source&nbsp;: BRGM, <a href="https://app.meteeaunappes.brgm.fr/" target="_blank" rel="noopener">MétéEAU Nappes</a></span>
+    <img class="brgm__logo" src="logo-vert.png" alt="Vert">
+  </footer>
+
+</div>
+
+<script src="calage.js"></script>
+<script src="brgm-nappes.js"></script>
+</body>
+</html>
