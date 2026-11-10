@@ -31,9 +31,10 @@ html, body {
   padding: 14px 16px 10px;
 }
 
-/* titre = intertitre (h3) du site vert.eco : Vend Sans 700, 22 à 24 px selon l'écran, interlettrage -0,01 em, interligne 1,5 */
+/* titre = intertitre (h3) des articles de vert.eco : Vend Sans 700, 22 à 24 px selon l'écran, interlettrage -0,01 em,
+   interligne 1,2 (règle « .article-content h3 » de ollie-child/css/custom.css, relevée le 2026-11-10) */
 .titre-galaxie { margin: 0 0 8px; font-size: clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px); font-weight: 700;
-  letter-spacing: -0.01em; line-height: 1.5; color: #000; text-wrap: balance; }
+  letter-spacing: -0.01em; line-height: 1.2; color: #000; text-wrap: balance; }
 
 .legende {
   display: flex;
