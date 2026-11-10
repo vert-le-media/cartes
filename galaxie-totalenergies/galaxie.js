@@ -384,25 +384,26 @@
 
   // ---------- Légende des tailles ----------
   (function legende() {
-    // Trois classes côte à côte (la plus basse, celle du milieu, la plus haute), à l'échelle de l'affichage
-    // d'ouverture ; libellés tirés des données
+    // Cercles emboîtés (la plus haute, celle du milieu, la plus basse), à l'échelle de l'affichage d'ouverture ;
+    // libellés tirés des données, reliés au sommet de leur cercle par un pointillé
     const g = d3.select("#legende-tailles");
     const k = echelleInitiale;
     const nb = (v) => v.toLocaleString("fr-FR");
     const libelles = D.classes.map((c) => c.min_keur === 0 ? "moins de " + nb(c.max_keur) : nb(c.min_keur) + " à " + nb(c.max_keur));
-    const bas = 20 + 2 * R_CLASSES[R_CLASSES.length - 1] * k;
+    const n = R_CLASSES.length, choix = [n - 1, Math.floor((n - 1) / 2), 0];
+    const rmax = R_CLASSES[choix[0]] * k, bas = 20 + 2 * rmax;
     g.append("text").attr("x", 0).attr("y", 9).attr("class", "titre").text("Cotisation 2024, en milliers d'euros");
-    let x = 0;
-    const n = R_CLASSES.length;
-    [0, Math.floor((n - 1) / 2), n - 1].forEach((i) => {
-      const rr = R_CLASSES[i] * k;
-      const t = g.append("text").attr("y", bas + 13).attr("text-anchor", "middle").text(libelles[i]);
-      const larg = Math.max(2 * rr, t.node().getComputedTextLength() || 50) + 8;
-      t.attr("x", x + larg / 2);
-      g.append("circle").attr("cx", x + larg / 2).attr("cy", bas - rr).attr("r", rr).attr("fill", "none").attr("stroke", "#888");
-      x += larg;
+    let largeur = 0, yPrec = -Infinity;
+    choix.forEach((i) => {
+      const rr = R_CLASSES[i] * k, yh = bas - 2 * rr;
+      g.append("circle").attr("cx", rmax + 1).attr("cy", bas - rr).attr("r", rr).attr("fill", "none").attr("stroke", "#888");
+      const yt = Math.max(yh, yPrec + 13); yPrec = yt; // libellés jamais superposés
+      g.append("line").attr("x1", rmax + 1).attr("x2", 2 * rmax + 10).attr("y1", yh).attr("y2", yt)
+        .attr("stroke", "#888").attr("stroke-dasharray", "2 2");
+      const t = g.append("text").attr("x", 2 * rmax + 14).attr("y", yt).attr("dy", "0.35em").text(libelles[i]);
+      largeur = Math.max(largeur, 2 * rmax + 14 + (t.node().getComputedTextLength() || 60));
     });
-    g.attr("width", Math.ceil(Math.max(x, 220))).attr("height", Math.ceil(bas + 17));
+    g.attr("width", Math.ceil(Math.max(largeur, 220))).attr("height", Math.ceil(Math.max(bas, yPrec + 6) + 2));
   })();
 
   // ---------- Hauteur automatique de l'iframe (même message que les autres cartes de Vert) ----------
