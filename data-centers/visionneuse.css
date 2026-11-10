@@ -245,7 +245,8 @@ body.plein-ecran .cadre { position: fixed; inset: 0; z-index: 50; height: 100%; 
 body:has(.habillage) { background: #fff; }
 .habillage { --fond: #ffffff; --texte: #1c2426; --doux: #5d6b6e; --bord: #dfe5e6; --vert: #004352;
              --accent: #E2683C; --survol: #fdf0e9; --carte: #ffffff; --bulle: #004352; --bulle-texte: #ffffff; }
-.hab-titre { flex: none; margin: 0 0 8px; font: 800 25px/1.2 var(--police); text-transform: none; letter-spacing: normal; /* h2 global : capitales espacées */ color: #000; text-wrap: balance; }
+/* titre = intertitre T3 de vert.eco (relevé le 2026-11-10 : Vend Sans 700, taille « intertitre » 22-24 px, interligne 1,5, -0,01em) */
+.hab-titre { flex: none; margin: 0 0 8px; font: 700 clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px)/1.5 var(--police); text-transform: none; letter-spacing: -0.01em; color: #000; text-wrap: balance; }
 .habillage .legende { flex: none; position: static; max-width: none; border: 0; border-radius: 0; background: none;
                       padding: 0; margin: 0 0 8px; font-size: 13px; line-height: 1.3; color: #000; }
 /* légende « stricte » : deux colonnes égales (div.leg-col), dans l'ordre des catégories ; titre de groupe sur mobile */
@@ -275,7 +276,6 @@ body.embed:has(.habillage) { display: block; height: auto; }
 .hab-logo { flex: none; display: block; width: 72px; height: auto; }
 @media (max-width: 760px) {
   .habillage { padding: 10px 10px 8px; }
-  .hab-titre { font-size: 22px; }
   .habillage .legende { font-size: 13px; }
   .habillage .leg-cols { gap: 0 10px; }
   .leg-groupe { display: block; }
