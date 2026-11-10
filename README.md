@@ -43,7 +43,7 @@ Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script 
 
 ## galaxie-totalenergies
 
-La galaxie des lobbies financés par TotalEnergies qui s’attaquent aux réglementations sur le méthane partout dans le monde (galaxie interactive : TotalEnergies →
+Les lobbies financés par TotalEnergies qui attaquent les réglementations sur le méthane (galaxie interactive : TotalEnergies →
 région → pays du siège → associations professionnelles, taille des bulles selon la tranche de cotisation 2024).
 
 - Page : https://vert-le-media.github.io/cartes/galaxie-totalenergies/
@@ -54,5 +54,5 @@ région → pays du siège → associations professionnelles, taille des bulles 
 Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script de hauteur ci-dessus s'il n'est pas déjà dans l'article) :
 
 ```html
-<iframe src="https://vert-le-media.github.io/cartes/galaxie-totalenergies/" title="La galaxie des lobbies financés par TotalEnergies qui s’attaquent aux réglementations sur le méthane partout dans le monde" width="100%" height="1000" style="border:0; max-width:100%;" loading="lazy"> </iframe>
+<iframe src="https://vert-le-media.github.io/cartes/galaxie-totalenergies/" title="Les lobbies financés par TotalEnergies qui attaquent les réglementations sur le méthane" width="100%" height="1000" style="border:0; max-width:100%;" loading="lazy"> </iframe>
 ```
