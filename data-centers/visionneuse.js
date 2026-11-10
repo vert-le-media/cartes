@@ -985,8 +985,9 @@
     // source et dates : ligne de crédit sous la carte (hors de la légende, qui doit rester courte)
     const credit = PIED || document.createElement("div");
     if (!PIED) credit.className = "credit";
+    // 2026-11-10 : « extrait le même jour » quand l'extraction a lieu le jour de la mise à jour
     credit.textContent = DATA.source + (DATA.maj ? ". Mise à jour du " + date(DATA.maj) : "") +
-      ", extrait le " + date(DATA.extraction) + ".";
+      (DATA.maj && DATA.maj === DATA.extraction ? ", extrait le même jour." : ", extrait le " + date(DATA.extraction) + ".");
     if (!PIED) $("carte").parentNode.appendChild(credit);
     leg.addEventListener("click", ev => {
       const b = ev.target.closest("[data-k]");
