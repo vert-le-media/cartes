@@ -112,6 +112,8 @@ body { padding: 0; }
   background: var(--vert); border: 3px solid #fff; box-shadow: 0 0 2px rgba(0, 0, 0, .45);
 }
 .brgm__slider:focus-visible { outline: 2px solid var(--vert); outline-offset: 4px; }
+/* mode d'emploi, sous la glissière (2026-11-10) */
+.brgm__aide { margin: 6px 2px 0; font-size: 12px; line-height: 1.35; color: var(--doux); }
 
 /* ---- Infobulle (style Vert : carte blanche, titre en vert foncé) ---- */
 .brgm__tooltip {

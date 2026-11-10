@@ -280,7 +280,7 @@
     const sym = v && pictosData ? pictosData.map[String(tend)] : null;
     const picto = sym ? pictoSvg(sym) : "";
     const niveau = !v ? "Pas de données ce mois-ci"
-      : classe === 0 ? "Sans nappe libre étendue ou sans point de suivi"
+      : classe === 0 ? LEG_ZERO
       : "Niveau " + (NIVEAU[classe] || "—");
     el.tooltip.innerHTML =
       '<span class="brgm__tt-mois">' + cap(dateHumaine(dates[index])) + "</span>" +
@@ -325,7 +325,7 @@
   }
 
   // ---------- Légende ----------
-  const LEG_ZERO = "Sans nappe libre étendue ou absence de points de suivi";
+  const LEG_ZERO = "Sans nappe libre / pas de points de suivi";
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
   function pictoSvg(id) {
     if (!pictosData) return "";
