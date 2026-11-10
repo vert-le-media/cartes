@@ -33,6 +33,10 @@
     "août", "septembre", "octobre", "novembre", "décembre"];
   const VITESSE = 700;    // ms entre deux dates en lecture automatique
   const SEUIL_MOBILE = 500; // largeur (px) sous laquelle on passe au format 350
+  // Recadrage vertical par format, [y0, y1] en unités du fond (null = fond entier).
+  // 350 (mobile) : la France (Corse comprise) occupe y = 118 à 428 sur 481 ; on coupe la Manche/l'Angleterre
+  // en haut et l'Espagne en bas, avec ~13 unités de marge pour le fondu (2026-11-10).
+  const CADRAGE = { "350": [105, 438], "700": null };
   const TAILLE_PICTO = { "350": 10.2, "700": 17 }; // ×1,14 : nouveaux pictos (ombre comprise), même disque qu'avant // taille des pictos (unités viewBox) par format
   // Décaler légèrement certains labels de villes (en unités de la carte).
   // [dx, dy] : dx>0 = vers la droite, dy>0 = vers le bas. Exemple :
@@ -65,6 +69,8 @@
     play: root.querySelector(".brgm__play"),
     slider: root.querySelector(".brgm__slider"),
     carte: root.querySelector(".brgm__carte"),
+    cadrage: root.querySelector(".brgm__cadrage"),
+    plan: root.querySelector(".brgm__plan"),
   };
 
   let dates = [];
@@ -236,6 +242,10 @@
     systeme = sys;
     const s = CALAGE.SYSTEMES[sys];
     el.zones.setAttribute("viewBox", "0 0 " + s.W + " " + s.H);
+    // recadrage vertical : fenêtre [y0, y1] du fond (marge négative en % = relative à la LARGEUR, donc exacte)
+    const c = CADRAGE[sys];
+    el.cadrage.style.aspectRatio = c ? s.W + " / " + (c[1] - c[0]) : "";
+    el.plan.style.marginTop = c ? (-c[0] / s.W * 100) + "%" : "";
     chargerFrontieres(sys);
     construireZones(sys);
     construirePictos(sys);

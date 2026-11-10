@@ -22,17 +22,20 @@
   <div class="brgm__legende"></div>
 
   <div class="brgm__carte">
-    <img class="brgm__fond" alt="Fond de carte de la France"
-         data-clair-350="FOND-350-CLAIR.webp"
-         data-sombre-350="FOND-350-SOMBRE.webp"
-         data-clair-700="700-CLAIR.webp"
-         data-sombre-700="700-SOMBRE.webp"
-         src="FOND-350-CLAIR.webp">
-    <svg class="brgm__zones" viewBox="0 0 350 481.13" xmlns="http://www.w3.org/2000/svg"
-         preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-    <div class="brgm__frontieres" aria-hidden="true"></div>
-    <svg class="brgm__pictos" viewBox="0 0 350 481.13" xmlns="http://www.w3.org/2000/svg"
-         preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    <!-- cadrage : recadre la carte en hauteur sur mobile (CADRAGE dans brgm-nappes.js) et porte le fondu -->
+    <div class="brgm__cadrage"><div class="brgm__plan">
+      <img class="brgm__fond" alt="Fond de carte de la France"
+           data-clair-350="FOND-350-CLAIR.webp"
+           data-sombre-350="FOND-350-SOMBRE.webp"
+           data-clair-700="700-CLAIR.webp"
+           data-sombre-700="700-SOMBRE.webp"
+           src="FOND-350-CLAIR.webp">
+      <svg class="brgm__zones" viewBox="0 0 350 481.13" xmlns="http://www.w3.org/2000/svg"
+           preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+      <div class="brgm__frontieres" aria-hidden="true"></div>
+      <svg class="brgm__pictos" viewBox="0 0 350 481.13" xmlns="http://www.w3.org/2000/svg"
+           preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    </div></div>
     <div class="brgm__date"></div>
     <div class="brgm__tooltip"></div>
   </div>

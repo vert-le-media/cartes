@@ -55,6 +55,9 @@ body { padding: 0; }
 
 /* ---- La carte (couches empilées) ---- */
 .brgm__carte { position: relative; width: 100%; }
+/* cadrage : fenêtre sur le plan (recadrée en hauteur sur mobile par le JS : aspect-ratio + marge négative du plan) */
+.brgm__cadrage { position: relative; overflow: hidden; }
+.brgm__plan { position: relative; }
 .brgm__fond { display: block; width: 100%; height: auto; }
 .brgm__zones, .brgm__frontieres, .brgm__pictos {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -151,10 +154,11 @@ body { padding: 0; }
 }
 
 /* ---- 2026-11-09 : fondu de la carte vers le blanc en haut et en bas (comme la carte data centers) ----
-   Appliqué aux couches de la carte seulement (pas au mois affiché ni à l'infobulle). Épaisseur : --fondu */
-.brgm__fond, .brgm__zones, .brgm__frontieres, .brgm__pictos {
+   Appliqué aux couches de la carte seulement (pas au mois affiché ni à l'infobulle). Épaisseur : --fondu
+   2026-11-10 : porté par .brgm__cadrage (bord VISIBLE de la carte, recadrée sur mobile) et non plus par chaque couche. */
+.brgm__cadrage {
   --fondu: 14px;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fondu), #000 calc(100% - var(--fondu)), transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fondu), #000 calc(100% - var(--fondu)), transparent 100%);
 }
-@media (max-width: 760px) { .brgm__fond, .brgm__zones, .brgm__frontieres, .brgm__pictos { --fondu: 12px; } }
+@media (max-width: 760px) { .brgm__cadrage { --fondu: 12px; } }
