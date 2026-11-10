@@ -47,7 +47,7 @@ Les lobbies financés par TotalEnergies qui attaquent les réglementations sur l
 région → pays du siège → associations professionnelles, taille des bulles selon la tranche de cotisation 2024).
 
 - Page : https://vert-le-media.github.io/cartes/galaxie-totalenergies/
-- Source : Analyse de Vert & DeSmog, montant des adhésions estimés sur la base de déclarations de TotalEnergies.
+- Source : Analyse de Vert & DeSmog, montant des adhésions estimé sur la base de déclarations de TotalEnergies.
 - Fichiers générés par `2026-11_enquete-toto/06_scripts/04_donnees_galaxie.py` (données) et copiés depuis
   `2026-11_enquete-toto/03_espace-de-travail/galaxie/` : ne pas les modifier ici.
 
