@@ -245,8 +245,10 @@ body.plein-ecran .cadre { position: fixed; inset: 0; z-index: 50; height: 100%; 
 body:has(.habillage) { background: #fff; }
 .habillage { --fond: #ffffff; --texte: #1c2426; --doux: #5d6b6e; --bord: #dfe5e6; --vert: #004352;
              --accent: #E2683C; --survol: #fdf0e9; --carte: #ffffff; --bulle: #004352; --bulle-texte: #ffffff; }
-/* titre = intertitre T3 de vert.eco (relevé le 2026-11-10 : Vend Sans 700, taille « intertitre » 22-24 px, interligne 1,5, -0,01em) */
-.hab-titre { flex: none; margin: 0 0 8px; font: 700 clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px)/1.5 var(--police); text-transform: none; letter-spacing: -0.01em; color: #000; text-wrap: balance; }
+/* titre = intertitre (h3) des articles de vert.eco : Vend Sans 700, 22 à 24 px, interlettrage -0,01 em, interligne 1,2
+   (« .article-content h3 { line-height: 1.2 } » de ollie-child/css/custom.css, relevé le 2026-11-10 ; le 1,5 de la règle
+   générale h1-h6 est écrasé dans les articles) */
+.hab-titre { flex: none; margin: 0 0 8px; font: 700 clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px)/1.2 var(--police); text-transform: none; letter-spacing: -0.01em; color: #000; text-wrap: balance; }
 .habillage .legende { flex: none; position: static; max-width: none; border: 0; border-radius: 0; background: none;
                       padding: 0; margin: 0 0 8px; font-size: 13px; line-height: 1.3; color: #000; }
 /* légende « stricte » : deux colonnes égales (div.leg-col), dans l'ordre des catégories ; titre de groupe sur mobile */

@@ -29,8 +29,9 @@ body { padding: 0; }
 }
 
 /* ---- Titre, chapô ---- */
-/* 2026-11-10 : titre = T3 de vert.eco (h3 du thème : Vend Sans 700, taille « intertitre » 22 -> 24 px,
-   interlettrage -0,01 em, interligne 1,5 = line-height body), relevé sur le CSS du site */
+/* 2026-11-10 : titre = intertitre (h3) des articles de vert.eco : Vend Sans 700, taille « intertitre » 22 -> 24 px,
+   interlettrage -0,01 em, interligne 1,2 (« .article-content h3 { line-height: 1.2 } » de ollie-child/css/custom.css ;
+   le 1,5 de la règle générale h1-h6 est écrasé dans les articles) */
 .brgm__titre {
   margin: 0 0 6px;
   font-family: var(--police);
@@ -38,7 +39,7 @@ body { padding: 0; }
   font-style: normal;
   font-weight: 700;
   letter-spacing: -0.01em;
-  line-height: 1.5;
+  line-height: 1.2;
   color: #000;
   text-wrap: balance;
 }
