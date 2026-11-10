@@ -384,7 +384,8 @@
 
   // ---------- Légende des tailles ----------
   (function legende() {
-    // Toutes les classes, côte à côte, à l'échelle de l'affichage d'ouverture (libellés tirés des données)
+    // Trois classes côte à côte (la plus basse, celle du milieu, la plus haute), à l'échelle de l'affichage
+    // d'ouverture ; libellés tirés des données
     const g = d3.select("#legende-tailles");
     const k = echelleInitiale;
     const nb = (v) => v.toLocaleString("fr-FR");
@@ -392,8 +393,9 @@
     const bas = 20 + 2 * R_CLASSES[R_CLASSES.length - 1] * k;
     g.append("text").attr("x", 0).attr("y", 9).attr("class", "titre").text("Cotisation 2024, en milliers d'euros");
     let x = 0;
-    R_CLASSES.forEach((r, i) => {
-      const rr = r * k;
+    const n = R_CLASSES.length;
+    [0, Math.floor((n - 1) / 2), n - 1].forEach((i) => {
+      const rr = R_CLASSES[i] * k;
       const t = g.append("text").attr("y", bas + 13).attr("text-anchor", "middle").text(libelles[i]);
       const larg = Math.max(2 * rr, t.node().getComputedTextLength() || 50) + 8;
       t.attr("x", x + larg / 2);
