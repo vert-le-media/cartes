@@ -29,9 +29,16 @@ body { padding: 0; }
 }
 
 /* ---- Titre, chapô ---- */
+/* 2026-11-10 : titre = T3 de vert.eco (h3 du thème : Vend Sans 700, taille « intertitre » 22 -> 24 px,
+   interlettrage -0,01 em, interligne 1,5 = line-height body), relevé sur le CSS du site */
 .brgm__titre {
   margin: 0 0 6px;
-  font: 700 25px/1.2 var(--police);
+  font-family: var(--police);
+  font-size: clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
   color: #000;
   text-wrap: balance;
 }
@@ -144,7 +151,6 @@ body { padding: 0; }
 /* ---- Mobile ---- */
 @media (max-width: 760px) {
   .brgm { padding: 10px 10px 8px; }
-  .brgm__titre { font-size: 22px; }
   .brgm__chapo { font-size: 13px; }
   .brgm__leg-couleurs { gap: 2px 10px; }
   .brgm__logo { width: 60px; }
