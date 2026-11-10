@@ -1,0 +1,158 @@
+:root {
+  --orange: #f95a35;
+  --vert-fonce: #063f34;
+  --turquoise: #1aa99f;
+  --texte: #111111;
+  --gris: #666666;
+  --gris-clair: #e2e2e2;
+  --fond: #ffffff;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: "Vend Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Habillage comme la carte des data centers (2026-11-09) : cadre blanc bordé, titre Vend Sans Bold 25 px,
+   légende au-dessus, graphique, logo Vert en bas à droite */
+.galaxie {
+  max-width: 700px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #dfe5e6;
+  border-radius: 6px;
+  padding: 14px 16px 10px;
+}
+
+.titre-galaxie { margin: 0 0 8px; font-size: 25px; font-weight: 700; line-height: 1.2; color: #000; text-wrap: balance; }
+
+.legende {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #000;
+}
+.legende-tailles text { font-size: 11px; fill: #000; font-family: inherit; }
+.legende-tailles text.titre { font-size: 12px; fill: #000; }
+.legende-traits { list-style: none; margin: 0; padding: 0; }
+.legende-traits li { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.pastille {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; flex: none;
+}
+.pastille-ca { border: 3px solid var(--orange); }
+.pastille-estim { border: 1.5px dashed #888; }
+
+.scene {
+  position: relative;
+  height: min(560px, 120vw); /* recalculée par galaxie.js selon la forme de la galaxie */
+  min-height: 300px;
+  margin-top: 4px;
+}
+#carte { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#carte:active { cursor: grabbing; }
+
+.commandes {
+  position: absolute; top: 6px; right: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.commandes button {
+  width: 30px; height: 30px; padding: 0;
+  border: 1px solid var(--gris-clair); border-radius: 4px;
+  background: #fff; color: var(--texte);
+  font: 600 16px/1 "Vend Sans", Arial, sans-serif;
+  cursor: pointer;
+}
+.commandes button:hover { border-color: var(--texte); }
+.commandes button:focus-visible { outline: 2px solid var(--orange); outline-offset: 1px; }
+
+.aide {
+  position: absolute; left: 0; bottom: 0; margin: 0;
+  font-size: 11px; color: var(--gris); pointer-events: none;
+}
+
+/* Graphe */
+.lien { fill: none; stroke: var(--orange); stroke-opacity: 0.35; stroke-linecap: round; }
+.noeud { cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+#carte, .noeud * { -webkit-tap-highlight-color: transparent; }
+.noeud:focus { outline: none; }
+.noeud text { font-family: "Vend Sans", Arial, sans-serif; pointer-events: none;
+  paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; }
+.continent circle.coeur { fill: var(--vert-fonce); stroke: #fff; stroke-width: 2.5; }
+.continent text.nom { font-weight: 700; fill: var(--vert-fonce); letter-spacing: 0.03em; }
+.continent text.montant { font-weight: 500; fill: var(--vert-fonce); }
+.pays circle { fill: var(--turquoise); }
+.pays text { font-size: 9px; font-weight: 500; fill: var(--texte); }
+.asso .disque { fill: #fff; stroke: #b5b5b5; stroke-width: 1; }
+.asso.ca .disque { stroke: var(--orange); stroke-width: 3; }
+.asso.estimation .disque { stroke-dasharray: 3 2; }
+.asso.estimation.ca .disque { stroke-dasharray: 5 3; }
+.asso.sombre .disque { fill: #3a3a3a; }
+.asso text.sigle { font-weight: 600; fill: var(--texte); stroke: none; }
+.centre .disque { fill: #fff; stroke: var(--orange); stroke-width: 4; }
+
+.attenue { opacity: 0.15; transition: opacity 0.2s; }
+.lien.actif { stroke-opacity: 0.9; }
+/* bulle touchée ou survolée : halo orange doux (pas de cadre du navigateur) */
+.noeud.actif .disque, .noeud.actif circle.coeur { filter: drop-shadow(0 0 7px rgba(249, 90, 53, 0.6)); }
+/* au clavier seulement : anneau de focus visible */
+.noeud:focus-visible .disque, .noeud:focus-visible circle.coeur { stroke: var(--texte); stroke-width: 2.5; }
+
+/* Fiche */
+.fiche {
+  position: absolute; z-index: 5;
+  width: 280px; max-width: calc(100% - 8px);
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--gris-clair);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  font-size: 12px;
+}
+.fiche[hidden] { display: none; }
+.fiche h3 { margin: 0 0 2px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+.fiche .lieu { margin: 0 0 8px; color: var(--gris); font-size: 11px; }
+.fiche .montant { margin: 0 0 6px; font-size: 16px; font-weight: 700; color: var(--orange); line-height: 1.2; }
+.fiche .note { margin: 0 0 6px; font-size: 10px; color: var(--gris); }
+.fiche ul { margin: 4px 0 6px; padding-left: 16px; }
+.fiche li { margin: 1px 0; }
+.fiche .etiquette { font-size: 10px; color: var(--gris); text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 0; }
+.fiche a { color: var(--vert-fonce); }
+.fiche .fermer {
+  position: absolute; top: 4px; right: 6px;
+  border: 0; background: none; font-size: 18px; line-height: 1; color: var(--gris); cursor: pointer;
+}
+
+.hab-pied { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.hab-textes { min-width: 0; }
+.hab-note { margin: 0 0 6px; border: 1px solid #dfe5e6; border-radius: 4px; background: #f6f7f7;
+             font-size: 12px; line-height: 1.45; color: #000; } /* renvoi de l'astérisque, replié (comme la méthodologie des data centers) */
+.hab-note > summary { cursor: pointer; padding: 5px 10px; font-weight: 600; font-size: 12px; }
+.hab-note > p { margin: 0; padding: 0 10px 8px; }
+.hab-source { margin: 0; min-width: 0; font-size: 12px; font-weight: 300; line-height: 1.35; color: #000; } /* source en Light, comme les data centers */
+.hab-logo { flex: none; display: block; width: 72px; height: auto; }
+
+@media (max-width: 560px) {
+  .galaxie { padding: 10px 10px 8px; }
+  .titre-galaxie { font-size: 22px; }
+  .hab-logo { width: 60px; }
+  /* pied : source sur toute la largeur, logo dessous à droite */
+  .hab-pied { flex-direction: column; align-items: stretch; gap: 6px; }
+  .hab-pied .hab-logo { align-self: flex-end; }
+  .fiche { left: 4px !important; right: 4px; bottom: 4px; top: auto !important; width: auto; max-height: 70%; overflow-y: auto; }
+  .aide { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attenue { transition: none; }
+}

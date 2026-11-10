@@ -40,3 +40,19 @@ Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script 
 ```html
 <iframe src="https://vert-le-media.github.io/cartes/nappes/" title="Carte de l'état des nappes souterraines en France" width="100%" height="1000" style="border:0; max-width:100%;" loading="lazy"> </iframe>
 ```
+
+## galaxie-totalenergies
+
+Les lobbies financés par TotalEnergies contre les régulations du méthane (galaxie interactive : TotalEnergies →
+région → pays du siège → associations professionnelles, taille des bulles selon la tranche de cotisation 2024).
+
+- Page : https://vert-le-media.github.io/cartes/galaxie-totalenergies/
+- Source : Analyse de Vert & DeSmog, montant des adhésions estimés sur la base de déclarations de TotalEnergies.
+- Fichiers générés par `2026-11_enquete-toto/06_scripts/04_donnees_galaxie.py` (données) et copiés depuis
+  `2026-11_enquete-toto/03_espace-de-travail/galaxie/` : ne pas les modifier ici.
+
+Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script de hauteur ci-dessus s'il n'est pas déjà dans l'article) :
+
+```html
+<iframe src="https://vert-le-media.github.io/cartes/galaxie-totalenergies/" title="Galaxie des lobbies financés par TotalEnergies" width="100%" height="1000" style="border:0; max-width:100%;" loading="lazy"> </iframe>
+```

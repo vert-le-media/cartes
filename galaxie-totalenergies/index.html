@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galaxie des lobbies de TotalEnergies | Vert</title>
+<meta name="description" content="Les associations professionnelles auxquelles TotalEnergies verse une cotisation, regroupées par continent et par pays.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vend+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="galaxie.css">
+</head>
+<body>
+<div class="galaxie" id="galaxie">
+  <header class="entete">
+    <h1 class="titre-galaxie">Les lobbies financés par TotalEnergies contre les régulations du méthane</h1>
+    <div class="legende" aria-hidden="true">
+      <svg class="legende-tailles" id="legende-tailles" width="320" height="62"></svg>
+      <ul class="legende-traits">
+        <li><span class="pastille pastille-ca"></span>TotalEnergies siège au conseil d'administration</li>
+        <li><span class="pastille pastille-estim"></span>Montant estimé*</li>
+      </ul>
+    </div>
+  </header>
+
+  <div class="scene" id="scene">
+    <svg id="carte" role="img" aria-label="Galaxie : TotalEnergies au centre, relié par continent puis par pays aux associations professionnelles dont il est membre. Chaque association est accessible au clavier et décrite par sa fiche."></svg>
+    <div class="commandes">
+      <button type="button" id="zoom-plus" aria-label="Zoomer">+</button>
+      <button type="button" id="zoom-moins" aria-label="Dézoomer">−</button>
+      <button type="button" id="zoom-reset" aria-label="Recentrer">⟲</button>
+    </div>
+    <div class="fiche" id="fiche" role="dialog" aria-live="polite" hidden></div>
+  </div>
+
+  <footer class="hab-pied">
+    <div class="hab-textes">
+      <details class="hab-note">
+        <summary>* Montant estimé</summary>
+        <p>Vert a réalisé des estimations lorsque les chiffres n’étaient pas disponibles en 2024, sur la base des montants déclarés par TotalEnergies en 2022 et de sa méthodologie pour la revue des associations professionnelles réalisée en 2025, selon laquelle elle n’a analysé que les organisations auxquelles elle a versé 50&#8239;000&nbsp;€ ou plus de cotisations à l’échelle mondiale, ou 20&#8239;000&nbsp;€ ou plus pour celles dont le siège est situé en France et/ou qui ont une portée européenne.</p>
+      </details>
+      <p class="hab-source">Source : Analyse de Vert &amp; DeSmog, montant des adhésions estimés sur la base de déclarations de TotalEnergies</p>
+    </div>
+    <img class="hab-logo" src="logo-vert.png" alt="Vert">
+  </footer>
+</div>
+<script src="d3.v7.9.0.min.js"></script>
+<script src="donnees.js"></script>
+<script src="galaxie.js"></script>
+</body>
+</html>
