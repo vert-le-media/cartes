@@ -1089,6 +1089,27 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
     gc2.globalAlpha = 1;
   }
 
+  // Titre : une ligne sur ordinateur, deux au plus sur mobile (< 500 px). À 22 px (T3 de Vert) il lui faut ~630 px :
+  // trop pour la colonne desk de Vert (618 px, 596 utiles) et 3 lignes dans la colonne mobile (350 px, 328 utiles).
+  // On réduit la taille par pas de 0,25 px jusqu'à tenir, sans descendre sous 18 px.
+  var titre = root.querySelector('.hab-titre');
+  function lignesTitre() {
+    return Math.round(titre.getBoundingClientRect().height / parseFloat(getComputedStyle(titre).lineHeight));
+  }
+  function ajusterTitre() {
+    titre.style.fontSize = '';
+    var cible = root.clientWidth < 500 ? 2 : 1;
+    var fs = parseFloat(getComputedStyle(titre).fontSize);
+    while (lignesTitre() > cible && fs > 18) {
+      fs -= 0.25;
+      titre.style.fontSize = fs + 'px';
+    }
+  }
+  ajusterTitre();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajusterTitre);
+  if (window.ResizeObserver) new ResizeObserver(ajusterTitre).observe(root);
+  else addEventListener('resize', ajusterTitre);
+
   // Hauteur automatique de l'iframe : même message que les autres cartes de Vert ({ type: "vert-carte-hauteur", h })
   if (window.parent !== window) {
     var hEnvoyee = 0;
