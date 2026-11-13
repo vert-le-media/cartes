@@ -224,8 +224,9 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
         '<span class="leg-ligne">' + svgAplat('#fd634e') + '<span>Pays de départ</span></span>' +
         '<span class="leg-ligne">' + svgAplat('#7DE2B4') + '<span>Turquie, pays hôte</span></span></div>' +
     '</div>' +
-    '<div class="leg-astuce">' + (window.matchMedia && matchMedia('(hover: hover)').matches ? 'Cliquez sur' : 'Touchez') +
-      ' un flux pour le masquer</div></div>' +
+    // astuce : sur écran tactile « Touchez », à la souris « Survolez » (l'infobulle s'ouvre au survol)
+    '<div class="leg-astuce">' + (window.matchMedia && matchMedia('(hover: hover)').matches ? 'Survolez' : 'Touchez') +
+      ' un flux pour afficher des informations supplémentaires</div></div>' +
     '<div class="vt-scene"></div>' +
     '<footer class="hab-pied">' +
       '<div class="hab-textes"><span class="hab-source">Source&nbsp;: ' +
