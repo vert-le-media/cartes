@@ -32,6 +32,13 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
 .leg-groupe{display:none;font-weight:600;padding:0 2px 1px;}
 .leg-ligne{display:flex;align-items:center;gap:6px;padding:2px 2px;}
 .leg-ligne svg{display:block;flex:none;}
+/* légende = filtre (comme les data centers) : un flux se masque / s'affiche d'un clic ou d'un toucher */
+.leg-filtre .leg-ligne{width:100%;border:0;background:none;font:inherit;color:inherit;text-align:left;
+  padding:2px 2px;cursor:pointer;border-radius:3px;-webkit-tap-highlight-color:transparent;}
+.leg-filtre .leg-ligne:hover{background:var(--survol);}
+.leg-filtre .leg-ligne:focus-visible{outline:2px solid var(--vert);outline-offset:1px;}
+.leg-filtre .leg-ligne[aria-pressed="false"]{opacity:.38;}
+.leg-astuce{display:block;color:var(--doux);font-size:11px;margin-top:2px;}
 
 /* ---- Globe : couches empilées ---- */
 /* cadre du globe rendu visible : filet gris de l'habillage, coins de 3 px comme .habillage .cadre */
@@ -61,6 +68,11 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
   transform:translate(-50%,calc(-100% - 12px));opacity:0;transition:opacity .08s;}
 .vt-tip.vt-on{opacity:1;}
 .vt-tip.vt-bas{transform:translate(-50%,16px);}
+/* écran étroit : infobulle en bandeau au bas du globe (comme le bandeau des data centers), fermée en touchant à côté */
+.vt-tip.vt-bandeau{left:8px !important;right:8px;top:auto !important;bottom:8px;width:auto;max-width:none;transform:none;
+  font-size:13px;padding:9px 12px;}
+.vt-tip.vt-bandeau b{font-size:14px;}
+.vt-tip.vt-bandeau .tt-ligne{font-size:12.5px;}
 .vt-tip b{display:block;font-weight:600;font-size:13px;color:var(--vert);}
 .vt-tip small{display:block;margin-top:4px;color:var(--doux);font-size:11px;}
 .tt-ligne{font-size:11.5px;margin-top:3px;}
@@ -91,6 +103,10 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
   .hab-logo{width:60px;}
   .hab-pied{flex-direction:column;align-items:stretch;gap:6px;}
   .hab-logo{align-self:flex-end;}
+  /* cibles tactiles : 32 px minimum pour les lignes de légende (les deux colonnes, pour rester alignées),
+     36 px pour les boutons de vue */
+  .leg-col .leg-ligne{min-height:32px;}
+  .vt-views button{height:36px;}
 }
 </style>
 </head>
@@ -209,14 +225,16 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
 
   root.innerHTML =
     '<h3 class="hab-titre">Depuis le début de la COP, les jets privés convergent à Antalya</h3>' +
-    '<div class="legende" aria-hidden="true"><div class="leg-cols">' +
-      '<div class="leg-col"><span class="leg-groupe">Les jets</span>' +
-        '<span class="leg-ligne">' + svgLigne('#7d2d1b') + '<span>Venus de l’étranger</span></span>' +
-        '<span class="leg-ligne">' + svgLigne('#004352') + '<span>Venus de Turquie</span></span></div>' +
+    '<div class="legende"><div class="leg-cols">' +
+      '<div class="leg-col leg-filtre"><span class="leg-groupe">Les jets</span>' +
+        '<button type="button" class="leg-ligne" aria-pressed="true" data-k="int">' + svgLigne('#7d2d1b') + '<span>Venus de l’étranger</span></button>' +
+        '<button type="button" class="leg-ligne" aria-pressed="true" data-k="tur">' + svgLigne('#004352') + '<span>Venus de Turquie</span></button></div>' +
       '<div class="leg-col"><span class="leg-groupe">Les pays</span>' +
         '<span class="leg-ligne">' + svgAplat('#fd634e') + '<span>Pays de départ</span></span>' +
         '<span class="leg-ligne">' + svgAplat('#7DE2B4') + '<span>Turquie, pays hôte</span></span></div>' +
-    '</div></div>' +
+    '</div>' +
+    '<div class="leg-astuce">' + (window.matchMedia && matchMedia('(hover: hover)').matches ? 'Cliquez sur' : 'Touchez') +
+      ' un flux pour le masquer</div></div>' +
     '<div class="vt-scene"></div>' +
     '<div class="vt-views"></div>' +
     '<footer class="hab-pied">' +
@@ -685,6 +703,8 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
   var SPIN_RATE = 2 * Math.PI / SPIN_SECONDS;
   var revealT = reduced ? 1e9 : 0;
   var hover = -1, tween = null, tipH = 60;
+  var visibles = { int: true, tur: true };   // flux affichés (légende-filtre)
+  function catDe(r) { return r.o.tur ? 'tur' : 'int'; }
 
   var mvp = new Float32Array(16), mv = new Float32Array(16), proj = new Float32Array(16);
   var W = 0, H = 0, dpr = 1, dEff = dist;
@@ -715,7 +735,7 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
   var pointers = {}, nPointers = 0, pinch = 0, last = {x:0, y:0}, moved = 0;
 
   canvas.addEventListener('pointerdown', function (e) {
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}   // protégé, comme le moteur des data centers
     var r = canvas.getBoundingClientRect();
     last.x = e.clientX - r.left; last.y = e.clientY - r.top;
     if (!pointers[e.pointerId]) nPointers++;
@@ -781,6 +801,7 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
   function pick() {
     var best = -1, bestD = 14 * 14, i, j, pts, pr, n;
     for (i = 0; i < lignes.length; i++) {
+      if (!visibles[catDe(lignes[i].r)]) continue;
       pts = lignes[i].pts; n = pts.length;
       for (j = 0; j < n * 0.9; j += 2) {
         pr = project(pts[j]);
@@ -807,6 +828,16 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
     tip.classList.add('vt-on');
     tipH = tip.offsetHeight || 60;
   }
+
+  root.querySelector('.legende').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-k]');
+    if (!b) return;
+    var k = b.getAttribute('data-k');
+    visibles[k] = !visibles[k];
+    b.setAttribute('aria-pressed', visibles[k] ? 'true' : 'false');
+    if (hover >= 0 && !visibles[catDe(lignes[hover].r)]) setHover(-1);
+    dirty = true;
+  });
 
   VUES.forEach(function (v, i) {
     var b = document.createElement('button');
@@ -848,6 +879,7 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
       // de loin, les aéroports turcs sont collés à Antalya : leurs noms glisseraient
       // sur le mauvais point. On ne les nomme que dans les vues rapprochées.
       var montre = L.a.hub || L.enJeu || (L.a.v >= seuil && !(L.a.tur && dist > 3.0));
+      if (!L.a.hub && !visibles[L.a.tur ? 'tur' : 'int']) montre = false;   // flux masqué : son nom aussi
       var pr = (alpha > 0.15 && montre) ? project(L.p) : null;
       if (!pr || !pr.vis) { hide(L); continue; }
       L.pr = pr;
@@ -994,7 +1026,7 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
       L = lignes[i];
       p = Math.max(0, Math.min(1, (revealT - L.delay) / 1500));
       L.prog = easeOut(p);
-      if (L.prog <= 0) continue;
+      if (L.prog <= 0 || !visibles[catDe(L.r)]) continue;
       dim = (hover >= 0 && hover !== i) ? 0.2 : 1;
       gl.bindBuffer(gl.ARRAY_BUFFER, L.buf);
       gl.vertexAttribPointer(aA.pos,  3, gl.FLOAT, false, 32, 0);
@@ -1016,7 +1048,7 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
     var appear = Math.max(0, Math.min(1, (revealT - 300) / 700));
     for (i = 0; i < lignes.length; i++) {
       L = lignes[i];
-      if (L.prog <= 0 || !L.premier) continue;
+      if (L.prog <= 0 || !L.premier || !visibles[catDe(L.r)]) continue;
       gl.bindBuffer(gl.ARRAY_BUFFER, L.dot);
       gl.vertexAttribPointer(dA.pos, 3, gl.FLOAT, false, 0, 0);
       gl.uniform1f(dA.size, 6.5 * dpr);
@@ -1038,7 +1070,9 @@ html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
     dessineContour();
     placeLabels(Math.max(0, Math.min(1, (revealT - 900) / 800)));
 
-    if (hover >= 0) {
+    if (hover >= 0 && etroit) {
+      tip.className = 'vt-tip vt-on vt-bandeau';
+    } else if (hover >= 0) {
       var bas = last.y - tipH - 14 < 0;
       tip.className = 'vt-tip vt-on' + (bas ? ' vt-bas' : '');
       var marge = Math.min(124, W / 2);   // demi-largeur de l'infobulle (240 px)
