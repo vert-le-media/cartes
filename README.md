@@ -56,3 +56,19 @@ Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script 
 ```html
 <iframe src="https://vert-le-media.github.io/cartes/galaxie-totalenergies/" title="Les lobbies financés par TotalEnergies qui attaquent les réglementations sur le méthane" width="100%" height="1000" style="border:0; max-width:100%;" loading="lazy"> </iframe>
 ```
+
+## jets-cop31
+
+Jets privés arrivés à Antalya pendant la COP31 (globe interactif : un trait par jet, de l'aéroport de départ à Antalya).
+
+- Page : https://vert-le-media.github.io/cartes/jets-cop31/
+- Source : PolluterJets (The Stats Guy), d'après les signaux ADS-B d'opendata.adsb.fi.
+- Fichier autonome (données, contours et logo embarqués), généré dans le projet `2026-11_cop31-jets-prives`
+  (dépôt privé `vert-le-media/jets-cop31`) par `03_injecte_globe.py`, puis copié par `04_copier_depot_github.py` : ne pas le modifier ici.
+- Mise à jour pendant la COP : `01_telecharge_polluterjets.py`, `02_prepare_donnees.py`, `03_injecte_globe.py`, `04_copier_depot_github.py`, puis commit + push.
+
+Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script de hauteur ci-dessus s'il n'est pas déjà dans l'article) :
+
+```html
+<iframe src="https://vert-le-media.github.io/cartes/jets-cop31/" title="Globe des jets privés arrivés à Antalya pendant la COP31" width="100%" height="900" style="border:0; max-width:100%;" loading="lazy"> </iframe>
+```

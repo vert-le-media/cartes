@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Depuis le début de la COP, les jets privés convergent à Antalya | Vert</title>
+<meta name="robots" content="noindex">
+<!-- Globe interactif — jets privés arrivés à Antalya pendant la COP31.
+     Habillage : celui des cartes de Vert (data centers, galaxie TotalEnergies ; moteur
+     01_Projets/2026-11_carte-interactive-modele, visionneuse.css, classes .habillage / .hab-*).
+     Globe : adapté du gabarit 03_Charte/gabarits-cartes-interactives/united-globe.
+     NE PAS ÉDITER 04_exports/…/index.html : modifier ce gabarit puis relancer 06_scripts/03_injecte_globe.py -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vend+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--police:"Vend Sans","Helvetica Neue",Arial,sans-serif;color-scheme:light;}
+*{box-sizing:border-box;}
+html,body{margin:0;background:#fff;color:#000;font:14px/1.4 var(--police);}
+
+/* ---- Habillage (repris de visionneuse.css / galaxie.css) : cadre blanc bordé, titre, légende, carte, source + logo ---- */
+.habillage{--fond:#ffffff;--texte:#1c2426;--doux:#5d6b6e;--bord:#dfe5e6;--vert:#004352;--survol:#fdf0e9;
+  width:100%;max-width:700px;margin:0 auto;display:flex;flex-direction:column;
+  background:#fff;color:#000;border:1px solid var(--bord);border-radius:6px;padding:14px 16px 10px;}
+/* titre = intertitre (h3) des articles de vert.eco : Vend Sans 700, 22 à 24 px, interlettrage -0,01 em, interligne 1,2 */
+.hab-titre{margin:0 0 8px;font:700 clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px)/1.2 var(--police);
+  letter-spacing:-0.01em;color:#000;text-wrap:balance;}
+/* légende : deux colonnes égales (flux / couleurs) ; titres de colonne sur mobile seulement, comme le moteur */
+.habillage .legende{margin:0 0 8px;font-size:13px;line-height:1.3;color:#000;}
+.habillage .leg-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin:0;}
+.habillage .leg-col{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.leg-groupe{display:none;font-weight:600;padding:0 2px 1px;}
+.leg-ligne{display:flex;align-items:center;gap:6px;padding:2px 2px;}
+.leg-ligne svg{display:block;flex:none;}
+
+/* ---- Globe : couches empilées ---- */
+/* cadre du globe rendu visible : filet gris de l'habillage, coins de 3 px comme .habillage .cadre */
+.vt-scene{position:relative;width:100%;aspect-ratio:1/1;border:1px solid var(--bord);border-radius:3px;overflow:hidden;background:#fff;}
+.vt-scene canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab;}
+.vt-scene canvas.vt-grab{cursor:grabbing;}
+.vt-scene .vt-plat{display:block;width:100%;height:auto;}
+@supports not (aspect-ratio:1/1){
+  .vt-scene{height:0;padding-bottom:100%;}
+  .vt-scene canvas{position:absolute;top:0;left:0;}
+}
+.vt-contour{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+/* globe WebGL positionné : il passe au-dessus du calque d'ombre (inséré avant lui) et sous le contour */
+.vt-scene canvas.vt-gl{position:relative;}
+.vt-lyr{position:absolute;inset:0;pointer-events:none;overflow:hidden;--fs:12px;}
+.vt-lab{position:absolute;white-space:nowrap;font-size:var(--fs);line-height:1;font-weight:500;color:#000;
+  transform:translateY(-50%);opacity:0;transition:opacity .25s;
+  text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 4px #fff,0 0 4px #fff;}
+.vt-lab.vt-on{opacity:1;}
+.vt-lab.vt-hub{font-weight:700;color:var(--vert);font-size:calc(var(--fs) + 1.5px);}
+.vt-lab.vt-r{transform:translate(-100%,-50%);}
+
+/* ---- Infobulle (celle du moteur : .tooltip, .tt-ligne) ---- */
+.vt-tip{position:absolute;z-index:5;pointer-events:none;background:var(--fond);color:var(--texte);
+  border:1px solid var(--bord);padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.4;
+  width:max-content;max-width:min(260px, calc(100% - 8px));box-shadow:0 6px 18px rgba(0,0,0,.18);
+  transform:translate(-50%,calc(-100% - 12px));opacity:0;transition:opacity .08s;}
+.vt-tip.vt-on{opacity:1;}
+.vt-tip.vt-bas{transform:translate(-50%,16px);}
+.vt-tip b{display:block;font-weight:600;font-size:13px;color:var(--vert);}
+.vt-tip small{display:block;margin-top:4px;color:var(--doux);font-size:11px;}
+.tt-ligne{font-size:11.5px;margin-top:3px;}
+.tt-ligne span{color:var(--doux);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:2px;}
+
+/* ---- Boutons de vue (comme les boutons de zoom du moteur) ---- */
+.vt-views{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:6px 0 0;}
+.vt-views button{height:32px;padding:0 12px;border:1px solid var(--bord);background:var(--fond);color:var(--vert);
+  border-radius:6px;font:500 13px var(--police);cursor:pointer;}
+.vt-views button:hover{background:var(--survol);}
+.vt-views button[aria-pressed="true"]{background:var(--vert);border-color:var(--vert);color:#fff;}
+
+/* ---- Pied : source en Light + logo ; méthodologie repliée ---- */
+.hab-pied{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:8px;}
+.hab-textes{min-width:0;}
+.hab-source{font-size:12px;font-weight:300;line-height:1.35;color:#000;}
+.hab-source a{color:inherit;}
+.hab-logo{flex:none;display:block;width:72px;height:auto;}
+
+.vt-liste{margin:8px 0 0;padding-left:0;font-size:12.5px;line-height:1.45;list-style:none;}
+.vt-liste li{margin-bottom:3px;}
+.vt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
+
+@media (max-width:760px){
+  .habillage{padding:10px 10px 8px;}
+  .habillage .leg-cols{gap:0 10px;}
+  .leg-groupe{display:block;}
+  .hab-logo{width:60px;}
+  .hab-pied{flex-direction:column;align-items:stretch;gap:6px;}
+  .hab-logo{align-self:flex-end;}
+}
+</style>
+</head>
+<body>
+<div class="habillage" id="globe-jets"></div>
+<script>
+(function () {
+  'use strict';
+
+  /* GEO-DEBUT */
+  // Contours Natural Earth 50 m, encodés par 02-injecte-fond.py.
+  // Ne pas éditer à la main : relancer les deux scripts.
+  var GEO = {"terre": [["_db@lcB?`B~Bn@|Bh@XiAcBi@}@IuB}@"], ["ixa@jlBo@_@eAx@`@fBzBZlBYPwAkAcA{AV"], ["tbb@bcBX~ANJ?aBi@I"], ["{rE|Da@TuUvKMrB}GfEzAtFKpB_CfAEr@v@vBK|@J~AeAzBqAdEiAj@??~CrBxElAvBCfAz@hCBt@XnFw@tCNv@oGbA}Af@u@bEe@pB{@|Ba@nAa@rAq@??jB{FrBoBf@sBSgBb@wDqAIiAgAmAgBo@i@@aAh@k@JoA??y@WKuBnAqBeAW{EBuKO"], ["du@{kD?L@d@@nHnSIE~NxDPp@dBe@~GnW?h@`AGsAC?aMOWgAqAyAaAsGuGwE}A{F}@MaA{CgDUgAXyA?aAm@{BEDkB]?"], ["v~VgqHX?bKcElCwAjJqAlBqD[yB~FuAb@_DnFqCDeB??oB_BD_CrI}BjEcF|BoCtDyAdCqAjBgBfE`A`EnBpDcCjCwA`Ew@dEEAqb@?eV??uJn@yH~AqEPmDsAsF}@gHVkHuAgIq@gCpAuCm@k@}AiCRqIrDkGgCYvCuF_@kA{@qFJqHrAsMhAqG`@cEMmGdBvGbBgJh@{OWiDa@uEvByEeBjEsA_CcAsFI_DSaDn@gEjB_FOaJxAuH_@cHDV{BqDc@uHbA@|D_C_DaDDyAiEtE{BhFoAO{EkFqCgG^iEvAoG`FpD`BsJf@?lEiG}CoF~Bz@tCaEdCoEoCqCkDK{E{GLgH\\kGbBK`BrCjBkChBX`BdKjCvG\\lE{@z@bB~DhDx@tAfFfC|GL|CrAL`CfFVtFbDvE~ElA|CHfFcH`@{AxD{AvCwGe@sJtAgEjAoC|AyFv@sErAiIJyEP`@lD}@fEqC~EiH|DyC_AkBmEfB{HlCiB_I}AaFkCoBiCNeCfCiDrFuCkFqEtAuDbAwHkCm@uIt@mEReDs@yD`AuFrB}@lAcJNDfDaAzFwD^oCtBaHoB}D{EeC}A{CrDcG|F{EnFnA|BiGnBsDrB}Hp@aC~@mAhD{CXoAjAO~EpCjAnCdAfIfAzFbDpI^jLi@jHAnELfDnC|FvA~GhGdFvDgDa@aIeGcLeDiHSqD`B|DdC_AvEaAtCcGbBiI[gEaFMpCaCfAvF`CxLvBfEnA|EnCvCMFiDyIcD~HD|EV`CoB?qGvAw@dC^bAs@vCvC|@xCdAzArA\\~@HTp@nJ?nH@xAb@rEnCVN~@lAvD?bE?xA^_@f@Q|@BRdG`BlE^fFhBp@?bA]T]CSk@eA}AmBy@uBf@mDh@uDnE}AWa@\\Yt@?f@_@Hm@f@Rr@EKSn@SRs@xC_A`DaAbEmAzDgApDv@`A@tFs@`DX`E}@jE_@jCK|@a@b@mBbA@?jA|K?jT?fT?vQ?vQ?lQ?`R?bE?pQ?vP?"], ["|kOieKsC{AqG@Bd@hFlBjCCj@u@"], ["rqN_fMzEiBIgA_BMiMTwIlBQt@rEEvECzEZx@K"], ["~tNacKmA{@qADq@f@lAhBvAQr@{@GM"], ["`hQssMlBlA`HOpFs@iByA_Hu@mDdAiA~@"], ["niQocNzADtJMt@u@sK@kCd@VT"], ["t{QikNmFdAt@fAfHh@`Dm@tAkANqAaGFuBJ"], ["|eP}oM`IYrO_AdAmBVaBfEwA|KWfF}@iAqA}KJ}E~@gK?mD`Al@jAeFj@}Bn@mGFcHP}Hk@wKOcILuEhAm@rA|Br@hHj@~FW|P\\xKB"], ["jvTmgNyG\\bAz@rJx@fH_AaD_AcHS"], ["ntTokNcGf@rFd@jI?A[mE{@kBH"], ["nzIw_IhB|BdCnDcCcAeCh@dAdAoDv@}Aq@eE|@|@pCkCa@YhB}@zBrAnDxAFbCe@k@cDv@WfFlDvBGmC}A~Do@vEJbKE\\{@{BeAtAu@gDyBmE}H{BqBmDcA{AFd@t@"], ["fkO}uKyEbAeF|@Q~AqCOoC`ApD~@vHo@nByAdEhBzGfBdAuBlGRmDcBY{CcAwDoCNc@vAgB]sBr@"], ["hkNecM}DoAyLdBsG|AYvAsJm@oE~BaNlAoDpA{DxDnJ|AwM`C}Hj@_HvDyHL|@jC~IfFtFuAxH_EbGXVpBqErBoGzAqAt@aCdEbAnC|Fw@rN_DyGlDoEvB_@dA|OoAjLsBrFaBeAw@hHeB`HaBAx@`Q^hDcAcCsCwJC{KW`AgAeAcBaGaEv@yAjAcApH_BtKcA_Cs@rE{BnDK|CcAhBz@jJXtUm@fLy@bI]dDeAoE{AzG?~@kEyCqDmEqAcOs@pC~B}C|BwDaDyNqAwIlE\\bCkKy@"], ["rmQinM_LD}Jn@hHpDnFf@tEtCbFGzBoDAcBgBsAgEu@"], ["x~VwzM??qIsC{KaCqH@qG]ZxCxCdAxDHrJtA~H\\lGk@"], ["l|XwpI_EOz@bFmD~CnA?vB{AhA{AbB}@d@wAK_A}AX"], ["hrSsnNgKX{OhAyC~AmApAdIUhI_A|LGaE{@pFo@LkA"], ["|bWenHbBZhI{Ax@eArDeAb@w@lEc@jAmBOm@qEj@yB\\{DRcAdAcB|AgErAqAlB"], ["rvVipM}Gh@}NHcEx@uErAzFr@hNjCvFjC?vAlO~AhBwAlMiBuAsAiCqCmDcCbEyBcT_@"], ["z`TayMqD_@qEFc@`BxB|AdT^vNtAnHDXaA_LwAf[VvGc@oGcE}Dw@qPbAcJtB{IN|G_EwDgAmETcA~AmAdA"], ["vxSwgM_FpA}B`E}@lCmI`BiJ~ATvAfIN_CjAbAhAhJ_@vIu@fFJvJbAxN\\bJPjB}ApGu@pDTtF}CeCUsHa@yGHcGc@`Km@jLNxGChBiAoMoAtH@zIs@gDuCiCoAwOwBkEd@bB|A}L}@uGdBaFeBuD`AcDbEcBsAlCkEoD]gE^"], ["vrRmeMzEaCkF_BoFh@cJYs@x@xD~AmHtAb@rDfIlA~DQhCkApNyCC_AwKV"], ["fyS_kMkGGwCj@nDbCvHkCcA["], ["rfRo~MwCzAGfBzArChIRtE_@CsBfINL{CwEDmHcAwGJOY"], ["bwQwvNkC}@kEMvAm@qMI_GjBoIh@gId@}CbCqF~@rGz@pJtC~IL~KWtEqAAgA}Cu@jJ@|EcA|ByAiCwA"], ["l{Py~NiHe@iFGgK_@eHiAwFHwEv@wCkBgG_@eJUcRGiBTaQa@oLJqLJuONmLXmJt@Ft@fNtAbNf@tDl@sLAvMxBdIv@tIbDzK`@~Bf@|QTsGVhCb@eD`B|DdAtHv@|AlAvGz@[l@uIGCn@tOvBhOu@jQ\\hHWxJIX_BqJm@`BoCyBMuOtAnG_CbIe@aDmAaJo@y@eAzGmArAeBaPF}CTwHgA`MWzTJ`JcAdDoAhFy@j@cA"], ["buModL`Cx@~EHp@aBuAoBuD[}Cv@AtAVZ"], ["rxQiqLyBjAzBdAlG{@`DTpGyAoD}@kCuAsEv@wBb@{@d@"], ["frKuvHeAQeGp@kErAEb@~ABbG}@xD}A"], ["`oK_eHeA`BoCXyDC`BpAhAJ|FsAp@cAkA}@"], ["v~VgqHwP?qQ?cE?aR?mQ?wQ?wQ?gT?kT?}K??kAcAAc@lB}@`@kCJkE^aE|@aDYuFr@aAAqDw@{DfAcElAaD`AyC~@Sr@o@RJRs@Dg@SIl@g@^u@?]XV`@oE|Ai@tDg@lDx@tB|AlBj@dABRU\\cA\\q@?gFiBmE_@eGaBCSP}@^g@yA_@cE?wD?_AmAWOsEoCyAc@oHAoJ?Uq@_AIsA]eA{A}@yCwCwCcAr@eC_@wAv@?pGaCnBc@`AtE~AlEdArEz@hBtB^j@@hB_AjBsABRiA{@l@Pv@dC^~AArC`@vAHrBHdDx@eHe@{@d@vGz@~B?EW|@v@{@Fj@nCpCxCLs@j@I`Aq@i@jBq@b@AjA~@jAnB~CPG}@gCdBkAVeDd@tAi@~BbC_@iC~@G|Dy@LSdA[fE|BrCnEz@`CrBbBLdBhAZ`AzE`CnB~A~AtB\\lCc@hCaAjDwAlCAtA}AfFDdCFlAp@xBz@X`BW^wAjAm@hBkD|AyC\\mAi@cCv@mBzCgDlA]hExAb@I~A{A|Bq@`FXpDUvCJpA^c@t@BnAi@f@d@XhA]hAd@pCEtCiBlDXpCm@zBLfDl@tDrCdEtAlB~Al@xA@hCI~Ae@bAlADlCk@zC}@v@}Aj@kCtBqBdAuBbBgCjCoAbDB|B|CdD{@fB{@p@mB`AgBtBwAdB_AhAeAxI??pA~C?jK@fMmCnHaBSe@|FTbFL`@eB~BqB|AWTy@nBIfAu@xDSp@_@VmB`EgEfDuGGm@vAaAzCgDZcDhBkBk@eDDkD~@yCmA{DWuDWsDb@kG~@kDx@{AWg@aHbAiBzDq@s@^cDbAcD"], ["fj]o|Bc@P_@Xq@dABJlAh@~@^\\^p@[Ew@^gAIUa@a@Le@KSMBmA`@"], ["~m]w`CNV`ALb@i@TO@MSOeAPs@^"], ["vr]kcCDTjBEOWaBF"], ["tz]wfCQLy@`AJJLCdAEVm@FGs@["], ["`c^yiCCl@TRbAe@IM]Sm@D"], ["lo_@kxJ_DPQjAxB^bCe@xBu@eEa@"], ["t|\\iiJeCLsA|@lD|AfElAdBs@\\}AuDgAiB]"], ["dpZurL???dV@pb@eEDaEv@kCvAqDbCaEoBgEaAkBfBeCpAuDxA}BnCkEbFsI|BE~BnB~A????lBkAnD_Av@mD`GaDjB{D~DM|HChFy@|KoE~De@zIeAtGNhK{AjFsA|Eh@g@hClBLfFf@nDbA|Eh@ZsByAeEsE{@t@q@~FlBfCdC~GlCqC`BzDlCvErAfE|@p@vAvHfB|@|AhFrAhCMxDv@jEbAdD`AvIx@\\a@yE}AcE}@uEkBwFWaBqAuGwBk@g@sCeAa@wCeBuBdFz@`Aa@jBhA`CeBt@fAjAcBfEnAxB?NwBc@gA`CgAbGd@fD}AhCo@?oBxCuAmAqBaDoBgAgBaDMgC^aD_BqCNwC}@d@yAnBc@sCmAxB@rEj@|@j@|Ck@xGTdHo@rAoAzFsBwGsA_MaBcD?ZbBeLG`D{BtFkAlCcB~DsApG_AoBgBaJG{FyAo@aBkE}AcEWyJwAwDLsHkBmHh@qCxAwAe@qIJJl@qH`@kESeL~@_KPyCXiG_@oHz@wEZ??"], ["hp`@smK{Bd@{BSaDr@eEXNTvCh@vCi@jAe@nDJn@QKiA"], ["_aPqrHvCbCdDPHhEnBxAjKaAnCdJdBj@jKnAsDzIhCr@OpBzB]bBgAfHSjIEfAT|GsAnBh@^tBhIeA`C\\l@tApBd@fGjCvAlChA@t@_B~FEf@cD`B?OiEnFqCtINjF\\|DuDbDiAtHoCd@Q`OtBG`VdBHjC{CfCw@bFf@vAbAHq@o@qAd@eAfFcAxAsDlBq@DaAaERGsCiD_@mD\\c@aEb@{BfEHhDq@fFvAxDh@dB_@SgB|BcCrCBhDeCqBwCx@i@_DyEmErBWsC}KwEwHEwLhCmFpAsEsA{HC_GdBy@y@yGFq@}AbIiC_EaBd@u@_Es@nCgC{AeAkVcAaBq@sNiAsDsAgJj@}@nEoEq@aGbANlB}DKuN{DfA|@}FzC_MzNiBiBsGrB}Gs@oBb@_BrBkCd@sAtAaG[iBzB"], ["y|IeaGFaVaOuBe@PuHnCcDhA}DtDkF]uIOoFpCNhEaB?g@bD_GDu@~AiAAwAmCgGkCqBe@{@RfD`CsCjAmCq@mFfB`GnCvCQpABZw@i@{AjGl@~@~B|AnBfDIr@vAsCn@i@rCnBjEtCk@nB?EyBhGuApEaB`C}AdFiC`BmE`Ae@vEHlAi@R}ClGiBfDrBjDbAa@dB`F@"], ["gpZfO{IhCoJpBiCdBoBdB]tBmIxBo@hBvDTk@dCqD`CaCrEsBEFvAyC`@z@d@sErATx@bCLp@s@jDUhE]xC_CpBmBfBmDdGwAfDx@xB`AWpCzCdAnBa@nEG@kSBkS"], ["_y\\zUkA~@WfB|@t@d@uBl@mAzAaApBsAnC{@w@o@kBv@cAj@sAn@oArA"], ["sp\\nc@lBn@dBn@hB?bDy@pBw@O}@sDZmBM]_B[EShBqBMw@eAoBeATuBwBCg@^BnBbAxBfBN^v@"], ["gf]j`@{@l@aB|B}AbAZv@v@RtAkAvA_Cj@wC[SUz@"], ["gpZfOCjSAjSpDcDhEg@p@v@|FDuAaD}Bw@r@yE~AgDbKgDdDQjHwDx@~AlAPj@gA@wAvCaBwEgAmCBNu@dH?lAuBrDe@rAaBmGo@eBaAaIpA]hAw@bIoEvBeDsEeFyBqD?iDdAuCfAuEd@"], ["alWpv@Sf@Cz@`CtCjDj@VWQcAuAyBeEoA"], ["yeYbj@RwCc@gAi@aAm@x@@|AdBhC"], ["w_V{XpBtDsCzD`@zA_FxDlFV`AfCGrD~DhCDdEjApH\\eAbFxAlAyBlCKbB_AlFfAhAaB`CJdDW\\kGbBw@~AiDZoDWwDuBeCa@dCgCpBaCi@_CNsBeB_BQ}Dv@aDi@eBuGmAeAeAcFeF?kD`@"], ["qgXnP{Ex@gAxCfDqAdDQpBLhCGo@mBuFG"], ["}wWtVhCc@d@uAiEIq@`AjA`A"], ["q~WqLMjBuBPSpAHlDfBS\\xBqAhBv@VnA}Bz@_Gg@_DaAgA"], ["i_WoDeFGeEoCa@j@~CdEtCd@`Ee@jIHnDZZvCsDpDkByAsJcANzAvA]tAtBnDjA{D`Gb@bAsDdF@bChBx@lAeA_BcDbElAp@w@YkAnCuBMaEbCz@OhFG|G|BZtAy@w@wD\\aErA?|@iCqAaC[_DeBkHi@sAiDsC{Cz@{FX"], ["{nVb_AhGkCyDg@iB|@eAz@Jt@rAB"], ["kuVjt@eCOqDiAZnBlHv@hGW?iA_Dg@{Bz@"], ["cbVfs@{BOq@tAfFf@hCXjBAcAqBmBAu@eAgAr@"], ["aeTbg@YfA_KRk@qAqJ~AiA~BkHd@uFtBdFjAzEoArDDnEOxDc@fFkArCSpAXlJsA`@uAtDMgC}DsFH_DnAsAL"], ["ikSvEa@jCeAnBqCPaB|Bp@xFFrH|EBfDeD`GcDrAyBvCaDbBuCvCwGnDeDx@kDhA{CrD}BfBkDvCoBnE{EPeBaCFsHd@qDbEyCfCmBrA}DtEkEBgDfCsBfDwCzAnA`DqBdAgAB"], ["|kL~gIkAzAcBtCcGvBwGp@xAbB|DHdBeAvBEtE??}L"], ["dgJz{Dn@~Ct@jEAfEj@j@N`CLfB}FjDXhC{BtAH`B~D~FfHjBpKh@zESi@tBf@tCc@dBvBdAjEZ~DiAlAr@[fEgCz@kB_A{@fBvD|@~C|B\\fEn@jBzD?zCdBx@tCcEpC_Eh@dApDjFpB`ChFtDlApA|A_AnEeCrBrAIxD_@`NYrAsBCuCdCJdAgAPsEyCwA_A_CVcBiBkDiAgGTuBwAe@TiAzAg@aAsAzAkAl@gFoAg@`@sFo@kEu@qDwBiA|@aE?wDwCaCDgDqBcEAwDr@c@|AwI{BmEPaEeAuDcC{DkC{Bx@mAg@_ADmIyEaBcAoEVq@gDuDeGp@sBnCmAaDcFF_@j@oJdIcD\\sFrCmElA]vAdEnHiEv@_F\\}C_@uDyC_@oDcBe@cBpBB~CfDlBdCpA`F`EjGpG"], ["|kL~gI?|LuE?wBD`AnAjD|@`BEtBOpC{@pE]xFmBlEkBpG_FcDh@yGdCgGdAgByA_AiCwDqAoCV"], ["|qLzlBaBfCYnCiBtA~@~DkB~EmArGoCYWp@bAnExE`BElIf@~@y@lAjCzBbCzDdAtDQ`EzBlE}AvIs@b@@vDpBbEEfDvC`C?vD}@`EvBhAt@pDn@jEa@rFnAf@m@fF{AjA`ArA{Af@UhAvAd@UtBhAfGhBjDWbB~@~BxCvAQrEeAfAeCKBtCsArBaNXyD^pDA~Ap@tDfA^xDrAD`FaAbFiC??xFsB|@}Bw@uBbBcCXuIuA_EqEyClHy@}DqDcAkI}EdAgB}KdCs@|@xF|B]}@}GcAqJ{AgCx@cEN_FsAG{BaIiC_IsAiHl@kH{@cDVwFsBsFe@aK_A_L}@_MLeIh@yGeBs@u@eB"], ["kvDb[c@vDRfBg@rBsBnBkBzF??lASlG`@t@Vv@|Bk@xA`@jFXfEu@b@kClAw@c@OvExCApAmBfAuAxC[l@gBxB|@~C[`AyA~BQ|ABH}@dACxAKzB\\vAEn@PImF`AiANyB]wBf@mAB}BrF@QgAdB?Hb@zBFp@rB\\p@nB[`AZbCNjAgBl@aAx@wBn@sClQCfAVv@ArAXZ}@s@UEuA_@s@iAi@s@RcAkAkB@Mv@iAb@uB}BsB_Bs@_AFeDwAaE{AeBaCaBW_ACgAa@eAJqBYoDe@}B{@iBKwBQkCmAeBkB_AcDbA_ChAqCRuCd@y@wB[O{AR}EcBoAh@_AE]o@iAQuCT_CBaASyBbDyAVu@a@{ALoBi@m@tAoDbC??JhFoAZ~@dAjAt@jAfBh@zAJ`Dl@jA@tCx@v@FvBXLRlBs@xAKpF"], ["}bGnIvBcD@wUoDcFu@}@_CCqDmCcGGuPwQkCgDyAyB?gB?iE?qAAC??_AC{A]iBS}AcAkA?Ct@PrBAhBj@fAv@vE~A~EzB~FjDbHhD~EjFnGfE`DhHfExDvCzEpFl@hBj@l@"], ["_tFf\\|GgELsBtUwK`@U@sEy@qAaBcCiAqCvAcFVeB|AiCyBwBgCcCgB`@?nBcA`AkC?{FhD_A@m@Ek@VeCNy@sAwDsAoAbAiC?nDbFAvUwBbDlCnAn@rAjALZlC~@nAf@dCnA`A"], ["qxCmr@vCwAdAw@L_Aa@qA@qApB{BVuACo@hA{@@sBh@mAdAJSiAs@qAVsAaA{@h@o@u@yByAsCmDLHyWAsAeF??oKcX?gW?yW?_AbEj@b@[lEiAnFkAn@mBhAdBpBpC`@~@z@RdCtAdHUnA^jDpAbEvBbBtAvCRpA|Av@z@pEArD@{CZCCcBVeAdBmAVoCWsC|AMLl@vBHo@x@QvBlBlBbBnCdBRfDsBjAh@Rx@fBd@Df@fE?Zg@nCGfA`@t@OfBuB`@u@nCZv@zAp@pDdAd@z@TgClA"], ["_tCkyBIxWlDMxArCt@xBi@n@`Az@WrAr@pARhAeAKi@lAArBiAz@Bn@|B`@dBnAnCxEzD|A`EKv@PSdAfBdAtAlAxFjAp@k@`@Cb@p@dDN_@u@~@iCZsAvAa@tBsBk@}A{ARw@MoB@lBuDGeCLcClA_CS}A`CCAaCrAiAuAeG_G}DIcGmAuKi@uApAcAB_AhAs@p@uHiEmB}W|J}W~J"], ["d_MezBQjBNjAp@`@s@z@Bv@bCa@|AJxBM|Ad@jB}@Q_AwDXwCNgAk@zAuAAkA~B_@m@w@yBHmD^"], ["d_MwoBCw@r@{@q@a@OkAPkBWa@{C?wBr@s@Ec@fAmBCDx@wAFaBhAhAnA|Ai@zAF`AIb@b@lAL\\q@`A\\nAfCr@_@Hw@"], ["a|a@k{L}FsA?hCzEH`@_A"], ["{qH_aHxAtB`E`@fElEuD|DRdCyEjF??tBnA`@r@xAMfCyBx@EzBm@|@qAxDi@xB^`@e@pG_BdH_@fDa@VV~FiDbFkAjDsBoC_@eDgDnBoAgHoADk@rD^GyAeBw@aEM_@aAl@mBqAiB@y@fHaArB@zB{AvC\\|FeACe@fAwA~CIN}@q@g@~BqBlER|@Ip@l@hAG??p@_Cl@aAe@S_DFmAk@v@u@fCa@Kc@pAe@zBaCi@u@R}A`Eo@hBVZq@pEq@~@uBP_B~Am@uA_Az@yDmCsB\\c@??cFmBpE}A??kL_GyDsBkAeBfHgCoAaCrDuCgCkDhFaFyDwCpHcC[kCaDSsIoA??mEeAiIxBaPn@sV`FyC|AMdC|EfBfIt@zZwCrCXeIpCMzAKlEaGz@{Cr@Y_BvBuA_CkAaNzBiDo@fCsCqMcEyDJyDdAsBiCdDuBaBwBrC{BoP~@qBnBzFV?nB}CbAsHi@q@_CaL_ByTkDuCHbExBwFRmCcAwJEgHqAcFvBcFcCpEsBgBaAmQz@uG~@sUbFeCiBjEgBBk@pFQaA_BjB{CD_AqJsDcCuDsCg@qOr@i@nB|D`D{B~@_AjCl@pG}ExBtAdCfKzGcF\\oAgA{Es@u@aBkD_BrBqB}AcCzEOn@oB_DgEbGcDeJeCl@mCcBCgBlBlA~DuEd@zAoCoIoA}KIqJpBpDeDRuE{Ig@aNFoLY`DgBgFcCeFCcKcBoOYaAw@mOQcDj@_MiBoJBw@uA}DuAwMqAwI`ApGn@eM^u@`BuDo@iQ@aM`B_DhAn@fB|Ez@lOlBtCz@wFZgHp@sDe@eB~BwAq@_I_@aS^o@|AcY\\KyCgLb@_IAaIhB{A~BtBrA{F|CyHnA_EqEaIxAsIu@cK|@qCw@gIZnCyDgGuAmw@`CiDtBkOxCgXe@mK^eDrAVpCuFv@kGg@aJEyJf@{JU{IpDwF_A`D_CwAyA}Rv@_LK_Q~AwGvA?zW@@~FvAbGOsDhBwBdD{At@WpAr@t@tJk@lPtCpDVpHjC`HxBhAzA|GiChOzCxAiA~DtAjG[~@bCnF`EEnAcFj@XbHxDFtAdDsAtA|IfBdAbFhHn@z@jE~GxDhAiCtAcHnB{L_BuGiDuBI}AuHm@eJyFwImEgJ_D_DyGpFNvBdDzNzEbDuFbObArNlIcDzB|Lr@rHRMoCvH_@vFbB`Rc@pSz@fSdK|VvMyHXaBzBaEj@_CaB{EJaHzEEhDzCfEPlFxA~HlH`H`AhCnGhFjGdF`CtBhGtB|B@|B_BjGpC^`A??????Zc@??@cBeBE]kFr@kDiDeAsFb@eCcEcAyEmAiAiBsDjIz@jDlAnH?pA{DjFmCzI_AhAcEdAyBjAuAxBiEnDiAjH{@fGDxFb@bDbBmBl@AnBnB~@rDrEAvAxG|BnFkAlFNhBaAvBUbHlCfG^vDp@zF_@vD@xBeBbE_BfE[|FXzDd@zGsAd@uCjFs@tDU~EsAlEnEoAtB`EhC`Hq@dEEdC}ApEClD{@nH|AzJjDrE`@lAPhB{B`GZrAuAjCe@~AsBnBc@|Gr@rGsBhBhB~L{N|F{CgA}@tNzD|DJOmB`GcAnEp@|@oEfJk@rDrArNhA`Bp@jVbAzAdAoCfC~Dr@e@t@~D`BcIhCp@|AxGGx@x@~FeBzHBrErAlFqAvLiCvHD|KvEVrClEsB~CxEy@h@pBvCiDdCsCC}BbCRfBeB^"], ["ciQkyNoLm@cKbBmM`Ep@rDrLVlPw@jImAvCmCpGg@gOgC"], ["waSonNyNpBx@nAfb@lAkJeGeDWuCL"], ["ubZ{zMoOHsUhB|CrC`VEhIn@lKaCkBiCgGe@"], ["k}[}uMuNt@dFlA~HQrJmAo@aAsJ\\"], ["ciZqiM}DoAyFQ{GjAWt@lH?xKUb@I"], ["iwGuvNeKc@oHAg@t@sBo@{Da@gHj@jA\\lGXrDNZ^fF`@xEo@qB}@zLE"], ["amCqrInJBtFWm@wAsG_AqE`@wA^Tv@Op@"], ["mmI}kM}MoDt@yA_MiBsS_CySe@uIiAeKYiCnAdC|@bU`BbR~AjR|DhHbExH~Dg@dD_KbDvBPjSYt@yAhJs@ZkBkEk@FkBmKkDvDW"], ["e|ZsnIeA~DBbEqAhEgE`JfHaAxB`HaEjEBjCvCwBbCxCb@gDUaEVwEo@wCGiGtBeEQoGyD{AnA}AwA[s@dC"], ["hda@acLN|BeCn@l@oC}O\\gKxDdEvAfIRDbEnAh@xDEvCeAhGy@l@wAhE_@bFXjBeAi@iAlFn@yA|ApBrA?{WiNvCkOdE"], ["x{a@azLdGJ?iCYGiD?_Hx@NZlEn@"], ["_pEi~Gs@q@mCh@_AFYf@]DAPaBn@kEKf@fAxE`@nGrBlBg@k@}AzE{@c@e@_EaA\\W"], ["rlNmfD}AOcCDEr@xE^LiA"], ["deN_hD}CxA`@lCd@YCgBxAoA?U"], ["tgNq|C{@FeAdDArBp@Hp@sBjAy@k@}B"], ["n}J`cIoFwBiDp@wBoA_DxAz@dAlGz@xAeAhDxAbByA"], ["s}A}pNkAeAeHE{FdAqSrCtNnAnBpCnDd@|AdDpFFlLyBuDgAjHw@dKiDzC{CaPgAmBdA{GA"], ["kaEwqLrInA`DRuAmC`GmAtH`A`BrC|DvAvEo@bGH~EiBtBr@zBF\\bCxJ_@r@nB~D?bClCfE|EtHvGgAbAdAnAdEC`CzDKhG_CdB`AhFdDhCvApBdCyBjKfFhGl@rGeBfAuE~@mMwD_CoOgDkKoEmJuG_NaKoIuCcP{FwLwAgIJqHeDkJFgJg@oRrC~Fr@yE|B"], ["ijDksNhHjBbQVjQa@b@u@~GCxE{AiRw@aHn@iE{@yNp@gKdA"], ["oyCqeN|LpA~Io@iCs@xB}@}Kg@oAhA_Hl@"], ["fcHmcO}SwB}TH_GiAaUS}p@Xaf@|CnJlA|VFr`@RcBb@cUU{QbAcK{@eDfAzErB}NiAi]mAwQd@oBtAnXlCnBl@~R`@oMHhFpC~C`CE|EoF`CxHHfI|@qJhBm@hDtEPcGjDzLNgFnA`AfAxG\\vG?{FfCAxAjKsAdBt@mGp@eGxBkA`DdJd@xCmAtFqBcAfCfFfBmOHsGHvOlD~O|CfQbA|E@lEjAtGrElLjChCFjGp@|Gl@jDzB@jCdBbCdI~CoAzCxAdDdB`ExGJdHaDnKA`EmBdCaExIyFdBaCZsDrGwDgAsCdCeAeEiFkHiAoAsAi@{CbFfAlBZrD\\rFaALgCmAiByDCwKt@vI}BpDeAfEZdDo@}E{DxBiA|CiCnFsE~FmAAsAvOsBfLOtOHfNLfF_AzI}BkO}@sKKvYs@bMoA[mAuV_B{U_BmAiAzOgAmDoAsTiCcHUrAyAyMs@eR_@gRAyE|@qOmB}MjAwGL_L`AzMkB[uA"], ["{mLznH_C~@}DVEf@v@xArHLBkB]qAMi@"], ["alWpv@Wm@kDm@iCE_AYkAXhAt@nEvAfDv@B{@Rg@"], ["ceBrqD_BcBoAv@a@rAyAN{Bd@kBOqDeBAaVu@\\uB|DPxBk@dAoCScByA}A{@o@_BaBm@sAV_Bv@cDH}Bm@U_Aa@}AmBO{@kAaAeCsDsCyGsCqA@_B`@cAWiBR_BxGs@lCb@|EQfAdBc@x@LPx@t@jAAbAuBlBuBUg@yAwC@p@pCVdDr@xAfCdBd@ZtAdBv@dBnBnC`FlElCvBvCzAnEjAdBJXt@xB[`Bd@xEg@vBXrAKlEnAhD^zBjAxABtAgA`ACvAwAFZZu@AuB~@eC_Ac@DyC`CyDdBiD??nCcG", "ctD~sDvA}@|Af@jBlAhB~BuCxCgASc@_AoB_@a@aA}@_BdA{@"], ["ctD~sDeAz@|@~A`@`AnB^b@~@fARtCyCiB_CkBmA}Ag@wA|@"], ["`{UkjEcFM}FURd@oH`BgMlCkKA_D??qAyI?iAdAeB~@uBvAaAfBq@lBgBz@eDz@}B}CcDCkCnAcBfCeAtBuBpBk@jCw@|A{C|@mCj@mAElAnD`@nCNjGP`Ba@jB}@`Bg@xCcCtCo@pBmA`BsEt@qArAoDw@wCSuCc@}Bc@_CoAo@uBOgDa@y@gCs@sEm@oDDyBOo@h@F~AhBtBn@xBc@b@\\tAp@zCp@s@h@Bd@@fAxBb@WVFA\\xDAxD??pBxA?iA`AiAl@Uj@_@JBbA`G?~AbD[d@Tl@Dx@`FwEfB_A`Ds@nBL~CjAdBRjCu@tCe@zD{AtC[`F{AfD_Bp@u@nBKjE}@rA{AtEqBbB}Bn@_BaASRy@m@s@?cA`AyAPoAbAcBnDgEhE{C~A{BjDqAb@o@]{BdBo@tB_Bp@kCjBOrBiB|A_BF_AjBuCdAyCAkAnCoAbAHpBw@^pAa@~AStCcApAsChCa@l@]NYbAc@Cg@`C{@p@k@fA{BdBcAxDy@vAw@zAIhBaBDoAzAgAxAB`@rAhAb@?t@yB`CqBnC_BdBs@EqC\\kB~A}@fCyAZXp@s@zBo@tBsBOOqAJiAkAGyAxCmCtBw@hA{BhAcCzA_DpAsD"], ["dgJz{DaCUiExCiAEmE~B{CnBsBfCvA|Aw@pBvA|B`FlBpCg@lBTvDuAfCDxBmBOaCk@k@@gEu@kEo@_D"], ["plI`rEv@qBwA}ArBgCzCoBlE_ChADhEyC`CTkGqGaFaEeCqAgDmBC_DbBqBbBd@g@sB[uB?mBfAc@jA^hAGVmAPuDd@{@dCu@pAd@rEe@MoGz@mB_Ai@RqBu@wAc@}Cl@{BlBw@TmA]sB~JGjAiFy@A@uAf@{@FqBrB{@|B@rAy@dCg@nAiA~Ea@vEqDOeCVmASuCdG`@fBjAnDnAj@z@fBDrCQnB`@zAUMoHbDtBnDEjAiBdCKi@uAlByBrAsDu@c@?sAwBy@RkBs@eAM}AcFgCcDe@[]sDHyAcPCwA^qBvAgA?qCqBa@g@TEmArBSB{BeKBaAeAw@~@e@tBe@WmBhB{CMg@}@sCm@qA_@WuAmCw@Hi@hDQZ}BGeCxAs@e@QsCX_Dp@y@o@mC]_FkAiAkAXw@gBGm@l@XvAcA\\m@zAv@dA\\hDq@dBMzA{B|AaBHUe@_AIyAa@_Au@oBPo@GkBNQg@^g@Sy@oAP}ASsBh@uAf@}@u@m@HYv@_BMkAkA}@sCuBwDcAGq@lBoB|IkB^ChCtCdD}@z@aJ^GfEwCcCyFfAkIxBaBtB^lBgF}@eKhBiHGgHdD_G~EyCx@iDFgA|@cA~Fa@vBnAjIdB`CxGtG|B`FrClDp@Bv@pCMvJv@rHTbC|@lAb@jGhEbG`@nE`DtAn@vBvE?zHjAjCxA~Ex@jF~ChDdEZrCa@nBd@hEl@~AjClB|E~InD~CfC|AxA|DbCpB"], ["pqLlcAsCPgBEk@{@oDoAgBkAeGa@RtCWlANdCwEpD_F`@oAhAeCf@sAx@}BAsBz@GpBg@z@AtAx@@kAhF_KF\\rBUlAmBv@m@zBb@|Ct@vASpB~@h@@}@zDeBvDC|Ix@~AnDBjBnAnF^k@bFGlA`DrBoCdGq@fDtDnCXlAsGjB_F_A_EhBuAXoC`BgC}BwEtAgDm@cAb@iAmAcBCiDIkCi@cAjDaI"], ["xsLzYrDIZ\\bDd@bFfCL|Ar@dASjBvBx@?rAt@b@sArDmBxBh@tAeCJkAhBoDDcDuBLnH{AToBa@kD`Ih@bAHjCBhDlAbBc@hAl@bAuAfD|BvEt@dBdBr@hEsBNqAjKgEfJyExC{BpAeD_@w@hDgGbEoJ|DmKpA{A|@sCzCaClCoA_AyA~A}D}@kC_D_CWrAx@n@EhAqAOqARqAdBqBqAe@gCyBmDoFmA{EqE}@aCZwCs@QeC|A_A|A{Ar@uBpEsCVoBs@gA`@wBOwC|A~BhE{@DcBhB"], ["~`LyFd@Vd@uBv@_A`AdAdKCCzBsBRDlAf@UpB`@?pCwAfA_@pBBvAxAbPbBiBz@E_CiEvC}AvBNfAa@nBr@rCWtBqEzAs@~@}AdC}Ar@PtAm@`BcAx@^fD[p@uAd@BfEqBX}@iAOFcBm@gAcBMsA}BkAgBhAo@e@sBj@uDi@u@^gDnAiBYaB_ALe@{@l@sBW]eBDuCkCsASAaAc@iDqB{A}BCOi@}CN{CcBmAm@aB_BeAJs@t@d@`A~B`@r@bBjAx@z@hAVlCt@tBeBJYzAk@j@OpAVhAGh@o@No@dAaGSsBXkCjDoAUoCJqBWgA`@b@jBj@bANnCg@bCw@z@Gj@dBbBgAj@u@dA{@fE"], ["lbNeu@V\\m@rBd@z@~@MX`B`Ay@j@kBq@u@r@Mb@aAbBw@vALf@dAnAp@j@DRh@_BjBv@XZ\\|AH`@wBX`@`AKf@oApAMr@UtA?Dj@V_@Ke@Oi@Fc@]Wh@[?qAkAQgAfABh@oAHSOu@n@aBMuAq@yBg@cA{@mBJFRoBDwA`@aAz@kAv@"], ["|bOyz@jAP?pAi@Z\\VGb@Nh@Jd@jBk@f@i@Ua@Dk@v@o@lAg@dAYJy@t@c@Mx@f@n@l@u@~@SZg@A}@Y}@v@]m@e@]YcCt@m@Y}@Na@h@y@Jo@i@s@jBkApA}ArA"], ["ziOkcAn@h@x@K`@i@|@Ol@XbCu@\\XdA}@|AqAj@aArA_AbByAU]a@\\MM}@IYk@]ADaBo@Ei@@i@u@{@f@SWe@WcAu@Ci@S@Yo@SEa@\\g@Hk@Yq@?eAY[[cABNRHj@ShAl@bATnADvAIr@ExA^RPtAMr@h@r@It@]^"], ["tfOw|AbACZZdAXp@?j@Xf@I`@]RDXn@RABh@bAt@d@VRVz@g@h@t@h@An@DE`B\\@Xj@|@H`@_Az@OMqAZSh@MtATFYz@_@j@g@x@Og@s@Ne@Og@}Aw@yAkAUFk@a@w@CSN]I}AP{AC_AUWW_AJo@Js@Cg@QyAZ_@B}@d@y@l@gA\\s@t@"], ["lmPcyAy@Nk@f@{@^GXuAUi@L[RLpATl@rBAfASrAg@lBKx@k@G[cAq@e@UJWo@K"], ["l_Q{yAEy@Um@Ze@_BcDaG?CcA^KTk@hAm@hAaAyA??qByD?yD@@|CN`F{@?aAb@O]y@XxAjA|Av@Nf@Od@f@r@n@JKVd@TbAp@FZdBa@zBCzAg@jBqA"], ["blPinB@]WGc@VgAyBe@A?\\e@?@t@`@vAQ\\RfAKPVdBd@r@b@Ff@bAz@?OaFA}C"], ["pzJo_@Yv@hAjA~EjAlC\\x@n@~Cq@rCYd@PyAr@FdC[|BiDPIh@lCv@VtApA^rCl@f@|@zCLlBiBz@gEt@eAfAk@eBcBFk@v@{@f@cCOoCk@cAc@kBfAa@pBVnCKnATjCkDrBY`GRn@eAn@OFi@WiANqAj@k@X{AdBKu@uBWmC{@iAkAy@s@cB_Ca@Dn@tBVaAxA@fBvArBiA~CwAMk@oC|@eAHwCwFqAX}AeA}@gAjCkCBaClBGbAqD?uESqBxAyCVoB}@Aq@wFKoFChDz@cA|A_DNwC`B_@~CgBCmAl@|CtBPhAcAhAn@b@zB^C|At@t@gCvC"], ["j`J{Jn@FnBQ~@t@xA`@~@HTd@`BIzB}AL{Ap@eB]iDw@eAl@{AbA]YwAl@m@fBFfCwCu@u@B}A{B_@o@c@bAiAQiA}CuBcChA{B`CEfBiABkB`BmAdA^rDvBr@Il@b@fBwApC_A?YnByBlD"], ["vsImMrBi@|ARnAQRx@_@f@Pf@jBOxBmDXoB~@?vAqCc@gBHm@wBs@_@sDoFf@Uc@aDOuEt@fBjDOhCmAtB`@tAPzAp@rA"], ["zaI_YtBvD|@rCjAjA~ALXw@l@I|@t@tAg@q@sAQ{Aa@uAlAuBNiCgBkDcATsCn@sEfD_@pA"], ["ue@ctH}Ar@_Hb@dBhCVlCv@`@xAQEp@pCnBBzA_B_@cAvAFv@{@jAdAz@s@zCkBVTvAtDnBhKu@bH~@TxBfFX`F{AfAj@nJyAnAmAgBwBe@mKnEqEpCeBpHkARqCaGk@oIr@|@cF{DtAqM{C{@cDmDg@]dA{AB}AnAkC|AeBOmDzAm@Py@C"], ["uu@miG_CkAa@jD`AxCxAg@n@gCi@iA"], ["`vM\\[vC|@`CzEpEnFlAxBlDd@fCpBpApAeBpASpANDiAy@o@VsAiBsCj@wAjA|AvBwAi@w@`@uDeA]c@}BkA_CLqAmBi@gCoAgEpBe@Cq@tAgDZy@_@aBbAuAl@"], ["f}KurBeBNc@f@r@p@tC?rBDJsA[]cD@"], ["xcNqrBeCPiBn@a@t@jCB|@`@nB_@pBiAWk@sAMm@D"], ["daO}oCmDL{C@{DbAoAhAyDUgAl@gDzB}BxAaAAuBf@Lv@sCHuCpAVl@bCXdCHhCO~GPeCmBnAs@`CMbAy@n@qBnBFzDu@z@i@bG]dAg@iAq@bEIlCfBrABZn@bBTrASgB{@k@iAyAk@eBe@wCSo@U"], ["}aE`jChBSbAV~Aa@pAA~ByAxC]x@_C@eArAUbF{E|@sBf@a@lA_D_FTaATaACoBaCmDcDgAOWeAqBoAuCYMhAeDC}Ah@i@p@_BLgB~@?|Ff@hCFtC_@z@TrB\\Rt@nCpE`F"], ["}vD`iCxGrCrDrC`AdCz@jAlBN`@|AT~@|Bl@bDI~Aw@rAW`Bl@n@~A|Az@bBxAnCRj@eAQyBtB}Dt@]?gQcEGEgUuCEsHeAkApA_CmA{@?oBm@c@NmA~Cg@`@}@rBcFzEsATAdAy@~ByC\\_CxA"], ["k{BxyC@`VpDdBjBNzBe@xAO`@sAnAw@~AbBrCwClAqCj@aEp@qC`AsHBmFXmBlAqAfBeDfBoFj@{BbDcEJyCaBe@uBa@aCDwBxA]MiXGkC~AcNZoJqAaDk@aCHoAl@?NnBl@z@?~BlAjAqArHdAtCDDfUbEF?fQ"], ["lgB}sArA{CbBgAwAe@aBkCo@gBcA_AcBP_Bk@oBA_Bz@cCr@yBrCcCfCI|Be@pBkAv@OlAF|@\\HjBONVj@BnCq@~AApJGt@T`AEhB`@^yCuDBo@[c@AiAm@uAh@uABwAm@h@w@`A^|@?lAq@~@Bj@n@xED"], ["|fAwlAG}@NmAjAw@d@qBH}BcAc@_@uB_ACkCv@oBg@mAL]m@aXAk@kC`@Y~A}Y~A_ZqHAaTrLaTrLo@|A{Bv@}A`@A|B}ES?lMlBdCNxBpD^nGPhAdA`CF~B@p@g@lB\\xDpAd@|@zCxAXr@rAf@`BYt@n@\\hC|CdDC`At@tAMrBrA\\l@V^sAv@Tb@Cb@x@xCAv@]XP|@w@K{@XWh@RGaAg@q@pAsAVw@j@k@f@Cn@Z~@Xv@j@rAOv@s@`@Er@X^?HgA"], ["riBgbCi@aAoW?d@_Hq@eByDQD_OoSHAoHoVdNpH@_B~Y_B|Ya@Xj@jC`X@\\l@lAMnBf@jCw@~@B^tBbAb@bCgCxBsCbCs@~A{@nB@~Aj@bBQbA~@PiBw@cBW{DTeEVaBScBr@_BfBuA"], ["yOcf@bDVp@iCGkMf@g@DcBdAeA|@y@YiBcAUi@wAaBQi@{@cAy@gAAwCrBF`Am@vBf@nAUt@`BzB|@z@d@|BE~BJ`I"], ["y{A{mCq@tHiAr@C~@qAbAh@tAlAtKHbG~F|DtAdGsAhA@`CaCBR|Ax@JD~@b@BfC{En@GzCnBxCy@jBKx@ZtBEtBtAdBBpFeB|An@dBChAiAhEkAtEVr@j@ZpBx@pALpDvCsBfA@bAx@EiCfFk@DaBnBaCXyAMaBaCGiAeAoGQqD_@OyBmBeC?mMyGwAaQiKmT{J{HtAoBlBmCiA"], ["yOcf@KaID_Ce@}B}@{@aB{BTu@g@oAl@wBGaAMqDy@qA[qBs@k@uEWiEjAiAhAeBB}Ao@qFdBeBCuBuAuBDy@[kBJyCx@{CoBo@FgCzEc@CoAlATd@H`AhDxCr@~BZfBh@j@h@jChBpA^dBj@nAPrAhCbAnBsAjABvBtBx@@|A~Dr@lCnEfAjAIjAj@~CCjB}B`AoCjCcCvC@nD?"], ["syAkoAmA~BMbCFdCmBtDnBAv@LzASj@|AuBrBwA`@[rA_AhC^t@bBhEn@b@NzCSrANz@}AfBQfAiAdByA`AIxASx@LjB|Cm@`Du@zFGXItBXxB[|ALdIC]}CnAcCxAa@h@yAp@]Au@s@mC}A_Ey@AwBuBkACoBrAiCcAQsAk@oA_@eBiBqAi@kCi@k@[gBs@_CiDyCIaAUe@nAmAE_Ay@K"], ["sDwcAXhB}@x@eAdAEbBg@f@FjMq@hC`Dh@j@eAt@}BNcBk@sDp@iAP}C?oCrAgBM}@oDB"], ["C{cAL|@sAfB?nCQ|Cq@hAj@rDObBu@|Bk@dAxHtBlBbArDx@rDw@IoAtAkDs@aFsAgDt@{GXwCCoB{IIwAL_A_@{AN"], ["dq@y~@YQw@\\yC@c@y@c@Bw@U_@rAm@WsA]yAj@a@`AyAh@eAq@}AGgCr@u@zGrAfDr@`FuAjDHnAxA@jCg@~B@jFb@jCv@dEhAd@CMeDSWDoArAsA~@Kx@w@i@wARaBIy@_@?KuANg@S[iAWp@_Dl@qAOcAg@O"], ["rtAumA_B@oCp@k@COWkBN]IIfA_@?s@Ya@Dw@r@sANw@k@_AYo@[g@Bk@j@Wv@qArAf@p@F`Ai@SYVJz@}@v@f@NNbAm@pAq@~ChAVRZOf@JtA^?v@Ch@nAv@?d@k@KoArAyBr@Th@Bv@JCiA^s@Ey@j@sAv@gA~C?l@d@v@B`@j@Tv@jBvAvAuBjAoAr@Yp@e@TyA\\k@x@_@wAaB}@Bs@a@k@?_@YPaAUUCcA"], ["fgBklAiBa@aADu@UqJFBbATTQ`A^Xj@?r@`@|@CvA`BhBsAtAKj@y@?]z@i@Li@"], ["vs@ao@Hx@S`Bh@vAy@v@_AJsArAEnARVLdDr@?lE}AtDwCjDmBdCaCo@_AIy@yAkB}A}Ai@Cs@UsAxBJnAe@j@w@?i@oAw@B"], ["xqAsv@kBwAUw@a@k@w@Cm@e@_D?w@fAk@rADx@_@r@BhAw@K|A|AxAjBHx@n@~@t@MnCoAfBkB`@gAXsC"], ["v`@y_ALsBu@uABaA}CeD]iCu@o@aBXsAg@Ys@{CyAe@}@yDqAmB]q@f@_CAL`BYxAoB`CE`BgFj@DhCh@z@`BPh@vAbATnDCzAO~@^vAMzIHBnBYvCfCs@|AFdAp@xAi@`@aAxAk@"], ["ajDu_@`AR~BCtCUhAP\\n@~@DnAi@|EbBzASZNx@vBtCe@pCS~BiAbDcAjB~@lAdBPjC~BKfCa@tBhBhBxDRy@HyAxAaAhAeBPgA|AgBO{@RsAO{Co@c@cBiEeDOc@q@a@Bq@j@yFkAuAmAgBeAReAw@QaEJ{D}AoCyEeBoA}Ba@WtAqBzBApA`@pAM~@eAv@wCvAkBnAA`AgCfBqAtAs@vBsCnA_@~@"], ["irB{TJvBz@hBd@|BXnDKpB`@dABfAV~@`C`BzAdBvA`EGdDr@~@rB~AtB|BhAc@Lw@jBAbAjAr@SjAcAz@`@pAtAbDsEyCmBjAcCcAs@gCWOwAiB~AoDF}@}AYeCT{C~AuBwAgFp@g@tCPv@gBOwA{FFaDt@}Cl@MkBiByDuBiBgC`@_CJ"], ["oeAcM}AMyBZuBYYHNvAw@fBuCQq@f@vAfF_BtBUzCXdC|@|AnDGhB_BNvAfCVbAr@kAbCxClBjEiEbCeDxBmEEaAk@_Ao@qCg@sCcAKcH@@oF"], ["i{@gMeIBAnFbHAbAJb@]cA_F"], ["c_Ebs@sAp@oA`@}B`@qBz@}AxAs@hD`@t@h@`Dg@dD~@bAz@xDgBr@|QdDQlCtCXpBnAVdAfANlDbDnB`C`AB`AU~EUb@O?OnAm@`CI`Dj@bC{BdCcDG{RaL@PcA]kAb@}AW_BT}@eABI|@}AC_CPaAxA_DZyB}@m@fByCZgAtAqAlByC@NwEv@b@jCmAt@c@YgEa@kFj@yAw@}Bu@WmGa@mAR"], ["wkEtx@cEd@g@t@cA|Aw@nGv@vCw@bGeAAgA~@sAnCO`GtAh@|@hC`C{BLkCi@}AJoAnAq@t@PrB_BfBs@{@yD_AcAf@eDi@aDa@u@r@iD|AyA"], ["_wE~fAuCOoFv@u@YiCCgA{@wBByEmA_DsB????_@xAFdEWnDGvHc@`Bz@nClAhC~BzBtDjA`F`B`FtEjAb@jClCpAl@PnC_BtCe@tBCz@a@IDbE^|Ao@`@\\pArAfAbDbApFjBvAhAQrAs@LPfBvCANwA\\yAPgAc@}Er@mC~AyGqEaFu@oC]SUsB^{@GuCg@iC?}FfB_A~AMh@q@|Ai@dDBLiAPmC}QeDsB~Au@QoAp@KnAh@|AMjCaCzB}@iCuAi@NaGrAoCfA_AdA@v@cGw@wC"], ["mgE`fDf@xAtBTtBmB@cAu@kAQy@y@MeBb@]xAOvA"], ["gpAz\\hAh@^r@DtAr@Tt@uCqAuA{@a@kAbA"], ["_lAbe@sAYw@@gAWmQBo@rCy@vBm@`AkAfBcCOaA[oBZ]q@q@sB{BGIc@eB?PfAsFAC|Bg@lA\\vBOxBaAhAHlFo@QwAD{B]yAJU|@V~Ac@|A\\jAQbA`LAFzReCbDcCzBnJpAbN[jC_BhXF\\LvByA`CEtB`@`Bd@P}B[oDcAuDKuA_AsDo@qAqBcC_AwAUsCHqBz@gAt@wBn@wBIi@}@oA|@_Ef@eCbB_CQe@"], ["m}D`NKnAi@j@A`An@h@lAfBhAfApAHJqFr@yAyBN}@qBiBJ"], ["g~EmkE`@~@hA[h@bCs@Vr@XFt@}A[ClAbB~HRs@lBcH????y@aALKs@{Ai@wC[q@EAaA?Qa@u@CCpAZ\\C@"], ["{~E_oEt@BP`@`A?eAcDcBkCCEyAH_@lAjBjAp@jB"], ["stH|lAu@tAq@bC_@nFs@|AR~Ab@x@bAuBd@z@e@rCPtAt@l@JfDnAhF`BrGzBxJjAtGxAfFbDn@lDrArBq@|CgAv@iBJqDdA}CRoCc@oC{Ac@AaA}AwCQ}Bl@_Bd@}BNwDeAoB[}BaBGoBi@iAc@wAAqBqBeD{B{@cBZuAsAVoBiCAwBaAyAeAtA"], ["g|EycE|AZGu@s@Yr@Wi@cCiAZ?xB\\x@"], ["lgB}sAyEEk@o@_ACmAp@}@?aA_@i@v@vAl@tACtAi@hAl@b@@n@ZtDCYwA"], ["gz@m|DrAeJzBqA@o@bDuBPwC{BoBo@cD^}Dg@gByEoAkCVDdBiDiAMd@bB`B@zAeAp@XlDbCbBe@jBgBBq@~AkA\\JxC`Bx@z@~@hCjAUrAPrA`Bl@"], ["fu@gjDAe@?M?kFaIsCgE]cDu@kAcBiFoAGsCsBOyAiAeGa@e@mAt@i@bAsEJyBjA_C_EkBwEc@}BqAaE}@qIa@kIQcB\\{DmAuEAqAl@gCKf@fB_@|Dn@bDzBnBQvCcDtBAn@{BpAsAdJaApDIzAb@bDOxAXlBQ|BnArAuBnCGtAeAnB}Ac@}CzAwA|BlTzJ`QhKxGvA|ER@}B|Aa@zBw@n@}A`TsL`TsLnVeN"], ["e}EmiEa@_A}EnAgKuEqArFf@\\nKbBgEfE`A`@`@bAvCXn@fAtA|@|E_@F[cB_IBmA]y@?yB"], ["kaIqvCc@GEt@}C_@cDDyBDgCgCuC_C}B{Be@dA[|CdB?P`Cc@ZxAf@?pAz@pABnAf@h@xQcBjAiEFo@"], ["q|HuyCLqCu@iBw@S{@|@CrBj@tBv@Lz@e@"], ["yjHkzDi@xAPj@aAvClCBp@}ApDSqC_EeCN"], ["_tF_hEpAsF{LoEiAqFPqCmBq@eB{BuA_@gFXeAr@_Ba@aClFcCz@MtBbBbAl@zCiC|DsFlBgBvC^pC}@AAjBoBfBvBIdCOpC~DrJOrPqKhHkCnFu@"], ["axI}lCCoA{@qA?qAyAg@b@[QaCeB?yAfCmBfAsCXuBb@yArBu@`AgAX?j@hAvB^v@rA~@hAfCzAIf@n@^bBWdCRXzAAzBjAR~Al@h@zB?lAp@?nA~Av@lBQdC`AzAJ`AkCzCiIwQgEeCoKzAmC"], ["s~Iu_Dd@eAy@cAYPRpAXd@"], ["ct_@hbB{BrB~@XbAwAGu@"], ["mq_@|`BZw@BwC_Bz@_@`Dt@Yh@J"], ["c`SekAl@oF_CgDaGe@{D\\cDlA{AiCoDhAm@bCVnFnIxCwAxBpELlDnAdD[pAgBdBoE"], ["spSexAzD]`Gd@~BfDm@nFpD{AjDB]{CnD?NzEjBbH`ApDMnCaCDqAtDc@lDoBpBwBVgBfB`ApAbCVLeBbDwA`@b@nAmA`@aBhBqB`B}A^tBd@oBU{By@_EaBmEmByDlAuDA}AToBdC}Cn@cBeAe@gAmDpAcC|BqC~AoDsAc@yAwEmCGsBwAsBm@uA|@KvBeCHn@pECrDqEwB{@b@uBEg@eAwCLwC`DKdEaDlDHhD~@xA"], ["c~SwwAnDiAzAhCbDmA_AyAIiD`DmDJeEvCaDvCMf@dAtBDz@c@pEvBBsDo@qEdCIJwBtA}@i@iAiDaCQn@iBD\\eFgB[sBzCyAtDwF@kAlD~Bt@v@dAmFvBgDjF}BpDuChCq@lCb@fE"], ["wpRs~BrBl@rBvAlCFxAvErAb@_BnD}BpCqAbCfAlDdAd@o@bBeC|CUnB@|AmAtDlBxD`BlEPuC{@wC`AuBOyEpAgB~@oFb@{FvAeD`CbBbFnCnBQzBo@cAwFh@yDzCgFWgArBYlCaDLaDeA^CoCcBo@TsAm@cAGoE{Cl@wAeDI_BoBgDFqBcGiCmCb@N{BeAc@LkAsBOcAtBuAn@ExCFbD|DfDVjFsE_@o@vD}Bd@x@dDsCjAwAb@qCy@EpAhD`Ch@hA"], ["akSq`AmDoAqEMvAyBoIyCWoFl@cCc@gEp@mCtCiC|BqDfDkFlFwBw@eA_Cu@jAmDvFAxAuDrB{CkBq@}C@cEWiDiB_BhAwDd@^pB}ApAiEr@hGhDfD|Dj@hCyCrEyDbGuDzByB~C{ApJZ~IdDbCdF`C`DdDxFxDfA_Cw@gCtCqB"], ["kpX{fG??????"], ["ooX_hG??[b@jAKtAbAz@bAGnCfBj@b@`@jAz@bC^vAt@DvATTmA^qBvAZn@tALlCFlAzAvAGLP~Ae@Vd@x@NFe@r@Qt@_@w@wAm@WPc@s@kBL_@rBU|Au@aD_C{EkBiCmC}A~@mDD^gBuHuAmAqBaCtB"], ["qsW}jFMQwAFmA{AmCGuAM[o@kDjFq@`CAdFjAlBrDd@~CpArDPVkBe@uCvAqEsC_@hCkD"], ["mcPcsHsEa@{JkDoH}AmDz@qEBeC|AeEDaHp@aEiCnAuBmEoE_FrAuDTkFr@e@tC{GrA{De@}FYgEZcE~AyBdBwDA{F^wDq@gG_@cHmCwBTiB`AmFO`BvCjCdEq@pAqBWeE\\wCiAaD~@sDjCTfA|CW`HZjCv@pCbCpHlAfEhBjEg@pBQfB~B_AlA_@`AjC`AnCjBhFdAjHF`IdAhFhBvA}@pF?fHwBbE]hGZ|Km@zEBtBuBxAwDzBUpF}BlG[jFa@fAuAkAiFhC_D|GkAfDiBr@kC"], ["i_RsoDMjAdAb@OzBlCc@bGhCGpBnBfDH~AvAdDzCm@FnEl@bAUrAbBn@fB}Hv@@^|BlBeB}@qByAK{AiDrBa@xDB|D[PkC|AG~CwAdAfCoChBzBhAl@hA{Bt@`@vBeAtC]bDZhAfCAtFf@IvChBtB~GdC~EjFtC|BfE`C?zAbBp@rDfA|AHx@vCg@bGKdDtA|D?rIfBHxAvC{@`AtDx@bAfCnAv@|DyDzAwGjAiEdA}AjB_En@yFb@}BtDqGpAcKz@_G?qFd@{D`HvBlCWdGqF_BgAx@mAhFiDcCeCwL?f@kDnBcBTyCbCyA}EqEgFNoEqE}BkEaEgE@mCiDsB`DaBdAgCdAoDaBuAoHp@}E]aEgDuEhFR`DoAfBDdBnC[w@zEcE~BuGjC|BxAlAzDaEhA{D`BcGpBsGXqBbByCRqFl@eDAUoAX_COuAyBi@O|CEf@sDjA}B_@iDLaDEMyBnA_A_DYuDsCgF_CeDp@oCsA}AzBbArAwE\\"], ["ebQwhCBnCdA_@M`Dx@gBHeBf@_BpAuBvDGQrA~@lBrAg@\\b@v@UlAQ\\cDdAuCa@wBzBu@m@iA{BiAnCiBeAgC_DvA}AFQjC}DZyDCsB`@zAhDxAJ|@pBmBdB_@}Bw@AgB|H"], ["c|PqlDoA~@LxB`DDhDM|B^rDkADg@eCsCkBs@mCn@iBBwAt@"], ["wePgmDNtAY~BTnAdD@pFm@xCSpBcBrGYbGqBzDaB`EiAmA{D}ByAsAo@_Dz@iEbCoBZaA~A{Cf@aDvAaFl@iFP"], ["oeNy|E`EfD|E\\nHq@`BtAeAnDeAfCaD`BhDrBAlC`EfE|BjEnEpEfFO|EpEcCxAUxCoBbBg@jDvL?bCdCrCq@x@oCzCyCnJd@bIBxGZiAgFaHgBP{A|A_@DoD~DwAnAwBbBiBoIdBgE]wBXg@k@kCPcGsAEiDoBoBsC?Uw@yCYiAPmAw@JwBuAyB}Bq@lAcC}DDw@gAFkAaBsATcBn@sAuBwAuEi@eFWeBc@sBUsCzAy@xCiIpA"], ["w~KohFoB?uCj@}@VoC_AcAd@_A{AwBB]]UoAuAeAkBl@T|@{@FPfDmA`AeAi@yAS{ByAiCNmE?c@x@rBTdBb@dFVtEh@tBvAo@rAUbB`BrAGjAv@fA|DEmAbC|Bp@tAxBKvBlAv@hAQxCXTv@rC?nBnBDhDbGrAjCQf@j@vBYfE\\nIeBuDuDN_CvCa@N}B~@_DsAmBtA]u@oCqAyFkEjAuCYi@{A}C]qB{@g@_DgDg@_@eA}At@{@D"], ["}fLcgFoBkEh@sCrCo@s@wAgDH}AoB_A_CkGm@h@zA[v@qACfAz@xE_@RpByEMuF~@{J]q@vDaASwBl@DlA]pBlE?hCOzBxAxARdAh@lAaAQgDz@GU}@jBm@tAdATnA\\\\vBC~@zAbAe@nC~@|@W"], ["ozLegGm@uAaC]iIdA_@uBoBi@}GrAgAUkIDgHRcBfA{B\\Zl@zHjBdAlA`GVhA~BrEYhCd@~D~A[l@v@l@zJ\\tF_AxELSqByE^gA{@wCPaGoClFgBlCp@rCkAgDaCz@S"], ["cgIcdGwAcAcFg@gCv@kCzCeBIaFA`@eBkDcAgDsBmGhBS|CmAh@wEIaAd@aBlEeFhCaC|AqE`BiGtADxBz@E|Au@^dAfDf@f@~CpBz@|C\\h@zAtCXjEkAPgDrCGdFoD|CU|EeBlCQvAb@dCClCpBnDd@b@mC[oEzCcAs@iCdCIm@iD{Dp@oD_ApCwBx@qB~Cp@TpC|@_C"], ["qnHazDnBgB@kB|@@_@qCfBwCrFmBhC}Dm@{CcBcALuBbC{@`CmF??jB_De@}@|@eFgCw@_@hAeB|AgCXiAEkFsCiAM{@x@dAbB{BfBq@I_ArC}Dh@iCbB{G`@yHu@Qm@oDe@mCqBeCBwAc@mCP}EdB}CTeFnDsCFQfDpAxFt@nCuA\\rAlB_A~CO|BwC`@O~BtDtDcBhBoAvB_EvAEnD}A^QzA`HfBhAfFvJ{@xEm@`FYtAuF~Aa@xCb@fE~AtFaAhEyC~Dy@dC{DpCkGjB^~BaAhAlA"], ["g~EmkEBA[]BqAq@kBkBkA^mAxAIPyCo@qAu@k@u@k@IoBaAf@{Ew@iBd@cDAeFiAkBBcF_@dBzBlBp@QpChApFzLnEfKtE|EoA"], ["uaHiqFhADnAsB?]vA?z@u@h@DlA{@rCo@QaB`@eAuG_@i@r@kAb@f@p@iBbAv@~@sAt@yA`@EhC"], ["}cA{nJwAqBeDiCaAiF~BeBJiGaC{DeEBeAoAfAcAuHwGgE}EcCmC_E?s@oByJ^]cC{BGiG`BwHfCErHaAlAvIx@`EhC_@zB|H~C`KjDpCxGmCjC_EnBvD`FnEl@jAnIpBzDpFSpB|CfFH|@}DfDaFvC{G"], ["coDa~IqEp@[p@iBWaEn@S|Ah@t@{B`CqAd@Jb@gC`@w@t@lAj@~CGd@Rm@`Aq@~B??jDJ|@j@JbBnAStDHr@m@hA`@jA[|CC|Eo@hEOzCBjBt@~AFBwA|@}AwBg@?oAt@kAHwAaE?yEiAm@qBcD_ARyAyB_@wEmA"], ["ueEsdIiAFq@m@}@HmES_CpBp@f@O|@_DHgAvABd@}FdAwC]{BzAsBAgH`AAx@pAhBm@lB^`A`ELdBv@FxA|CNdC~@zDHjDjAIhB\\EXg@~@GlCi@r@p@ZUvHq@JkAxDXhAlBzCrCxAa@|A^xAe@s@Ua@cAu@_ALc@i@OSZuBDs@Mb@UM[dAs@ZsAhA_@McAxAu@pAGrC}@bCRn@\\rA?p@l@rCRbA\\|Ao@~BAzBUtAj@Lu@lBu@e@qAw@s@k@Jr@yAuDeDaBUUy@bBmD_BGkBu@{CCiEN}En@}CBkAZiAa@s@l@uDIoARKcB}@k@kDK"], ["wqC}oIIvAu@jA?nAvBf@}@|ACvAcBlDTx@`BTtDdDs@xAj@K|DkAnCZ|AStBh@dBeApAXJKzAaBrCKR}@fCU\\p@jBg@Kw@tCO|AaApA_COcAp@iBhAgAw@u@l@eBgCy@wH{A{FcAgE`@On@_E@uFVoJCeBTo@|@"], ["ciBwkHNpAnB?e@h@`A`Cd@`@lDBdBl@bDO|Gs@l@eAdEb@Td@xB[dBExAc@]q@Fc@}@IcBv@[u@qDHmCc@_BD}@f@Sa@\\aCgAYgA{AsC~@oBoAeAO{C|@}AK{Ad@NXSdA"], ["aiCsmHmBt@Mt@xBh@|AfCxBdC~Cd@zBGxCr@??hA\\dDe@tCuA~@Wd@cA`@AaAaCd@i@oB?OqAeBp@iATgDWOg@mAEaB_@UL}AYm@m@aAKuEz@k@S"], ["keDklHo@]cCSsC|@qAFyAt@LbAiA^[rAeAr@LZc@Tr@LtBER[h@NMb@t@~@`@bAr@Tb@yAUuADwArBwB~@sA|@y@z@S"], ["moDi{GyAd@}A_@yA`@Ep@`Bj@z@Qv@nFtBSpCiAhFn@bBp@dHIxC_@lANv@qAd@c@o@a@p@W|@j@tBy@NqAxBo@T}@jBoA_De@yBeC}AgCyBi@uAk@{BT_C@}An@cA]sCSq@m@sA?{@R}@x@_ArAsBvBEvATtAc@xA"], ["qdDszISxAbD~@l@pBxEhA`E?n@}@dBUNq@Uw@vA_@pEa@h@gDcF}@oILcES[h@iBJ_E~A"], ["qiDefJ_Bl@Q~A_AtBvElAxB^~D_BhBKZi@bERnIMbF|@EuCaB}B{DcA_DrC_DCe@wCiDc@wAVkDhAeD@"], ["{mDwrJ??]b@lCrB{@xDtA~@dDAjDiAvAWhDb@WuBhAV|BeAPsB{Fw@{F[yE^mEE??"], ["gwA_oIm@dBv@t@iAfAq@hBNbAqA~BxATr@Wp@d@nCf@hAp@pCh@c@z@SrAeBn@qBtAfAzAfAX]`CR`@|@g@~AElCb@pDIZt@bBw@|@HtE{@f@j@hDAWmCeBiC~Gc@|As@IwAf@m@WeC`@qEwB?q@kAq@uDb@cAe@i@gDKc@j@gCaBl@kAFoBuCX_C]CjAiEn@@dAkEe@oBu@aFlA}A~@"], ["slCmsGw@pAmAOyC^eHHcBq@iFo@qChAuBRfBrAhAlCaApBjDYjE|@@bBtDRlCeA~Ct@rCELcCbB_Aa@[TW_@_AmA}@`BuAPiAq@k@"], ["icDs{EXz@~GNC_@tFg@e@uAmBbA{CIsCLB`@kBW"], ["mnCkaGsCD_Du@mCdAuDSAcB_Bt@|@zBl@VxBEfBSrFr@kCpBdB^nB?hBgBb@j@k@vBcB|AjAj@oBzAcBx@AnBvDs@y@dB~BRkApDbC@bDuAhA_Db@eClA{AdBqBLw@}AaBI_AaA]Cs@aCQmAk@kBB_@a@e@G"], ["yvGigF~A`@dAs@fFYtA^bF^jBCdFhAbD@hBe@zEv@`Ag@HnBt@j@t@j@hAyAkAkAxBNfDm@fCrBnHT`DiBvEGl@rAhCV`EkBxEBtBeEpCoB_B{C|B}A}E_EsHGsAwC}JXoFaCgFw@kIC{IjC_HlAgF]kDPkFiBuEG_E`Ba@dAP`BsCn@mAz@fCv@}@dFd@|@kB~C??"], ["gbDmdGkE}@kDXWlAmD~@b@p@lFHtA|@dDjB~@}ACg@m@W}@{B~Au@"], ["kbCg~FBr@`A\\H~@|A`B`@MBm@lBaAP_BOgC[}@`@_@??L_AwAaBKd@u@Qi@t@o@RMfA??XbA]tAqAp@"], ["ofBsaH_AVuCtAeDd@iA]o@lA_Av@jAjAzAk@hC@jD_@|ABh@h@fAm@h@pAaB|Ak@|@{AhAkAj@iArAqDjAT`@??zDiArBgAtD{@hDqCi@OzAsABcA~B]|@tAx@cACcAGCiCDe@_@cA^mAB@w@eASSqA}Cs@"], ["}z@ahHGb@\\p@yAb@eBDNpAvA`@rCYh@nA~AD`@]nBbA`BFtAi@bAwA~A^C{AqCoBDq@yAPw@a@iD@g@k@uEz@"], ["wd@ixHg@l@HvAx@Bl@QUoBs@G"], ["oe@o|HVdCr@FTnBlD{AdBNjC}A|AoAzAC\\eA_Dg@A?@?sCNwDi@_CvAmBn@"], ["ej@gmIc@bAp@tDp@jAvB?a@pElBo@~BwAvDh@rCOA?eBu@oDeHoGsAgDD"], ["lw@wdGgAq@qA]q@`BuB?a@YsBFw@bBzAt@@zC`@\\F|AtANoAvBt@bCcAx@Zv@hAhAQ`ApAr@fB[fBT]{CP{BxAQn@kAOaCoAiAMoAi@wBBsAf@gAFcA"], ["pm@{fFPaAiAiA[w@bAy@u@cCnAwBuAOG}Aa@]A{C{Au@v@cBrBG`@XtB?p@aBpA\\fAp@ImCpAwAyGoCuFb@kG?sE`@eDKcIFoAlAoJxAgAk@aFzAgFYIrB|DbC~Fj@P`AxBnBlA`DmApBrBxAh@`CvCf@lCxC|F@|DC|BfAjAhA`BOhAcAv@qBxD_@"], ["ve@uoIa@nCvCpD`JtBzG]aDoEfBkEoG{CwC}Ag@hBf@jB{BAuCf@"], ["ck_@vbCcDzBgBzAjAn@lBu@nCyA~BiBbCmCZaAuA@oBbAwAbA_Av@"], ["gt^n`Aw@dAjCAjA{BwBp@g@D"], ["oq^~z@\\b@rCkDh@wBcA?gA~CoA~A"], ["il^t|@lADxBUh@]KoAcC^aAh@_@r@"], ["wd^bq@o@~@Gf@|CuAjBgAjAaA]S{An@cDzA"], ["cu]zj@oA`Af@HvAk@pAqAIa@wBrA"], ["qpa@lyFjAhBbBhCxCnA`@s@rA]sBcD`AmBvEoAEgAoCeAa@yCFaCpAeCEc@~AqA|CoDpAmCiAOkBnB{Cr@w@pDqCpECgCyAt@]vC_D~@gCNqBkAeBVp@nDz@tBvCCt@z@QtAZd@"], ["mc`@foGiDiByBgBwAsCkAs@]mBkC}Ak@tAm@pAmCoAy@rA?rAhAzAbCrCdBnAiA~AxCBjDhAr@bCpBhE|CxAbBv@vDC`CaAvEM`@iAkBsCyFeEaCc@oCkA"], ["az[`~FwBLMjFbAdAT~CdAu@hChCh@IxBEzBkDXcCrBmDC{AcCP_EdAmB[{Ce@"], ["msWjhErEdBlDl@d@fBhApAhDB|BPnDc@nCThCHtBhBx@IbBx@`B|@nCEdC?tE_ChBe@CsBcBY_@m@DgAWiCTwBhBiE^qBGqBnAaCBy@xAoAV}CpB}CZsAwAtAbAyDcBx@y@lA@eBbB}CP_An@{@UqBi@q@YcBRsBqAoCOvCsAiCaDaAaBuAwCiA{AOu@X}CkAyBU]k@s@QoBDqE{@kBwAs@iBsBeBIoACmBkCgDsAjDuAg@fA}A_AaBwAj@WwCmBaBo@oAcBa@Cw@wAVAq@wA]aBYqCzAoBtB}B@}BPh@mB_B_DyAs@^q@wAqBwBgAgBVgDe@BeBrCaAkB[cCp@iBpAgDp@y@S{B|@sBy@kAPm@e@{A`Br@jBjAnAdADWnAz@bBdAbBMv@_DlByC~@eBdAoCtBy@?gBp@]|@_EbAcCcAe@kBg@wAYmB{@_DZ_BOy@VqBYwCe@g@\\aAo@iBe@mBCy@kAiAw@`BMzBq@XGrAgAbBOpBFfAgA|C_CkAaArA_BlARxAk@jD]`Bq@Xu@hDRfBaAfCwEfBmC~AeCtAXn@qB|BmAvEoAk@oAvAq@_@a@rEmCzB{AjA}C`Dw@~CCpBLzB_BhDJpD`@zAt@pDCpBf@nCvAtDrC`BhAzC`A`Bz@jDjAbBp@tCXhCI~@rBbA~EFvDpAzAlAvBtAdDyAxBa@]gBjBd@nDnCjDu@pB_@pBM`Ey@`C{Bb@wCn@cB`BqA~DWaA_Bn@uC`BjCpDb@gBmB]sBmAaBNsC`DhD|BbAjA~CzCqAEiB|BqCfBiAc@m@~FyBjCE~D_BdJPbGfAbF`A|DK"], ["e~N_n@\\nErAv@lDl@~A}C`@_HyAcIiClB{AlCaBnE"], ["gkTwpBbD}@DkDaByAyEw@sBBk@jAvAvAl@rBjD~A"], ["stNugGNqBiCs@rD{IkKoAeBk@oCeJkK`AoByAIiEeDQwCcCmAQs@jCgDhB}GjAiC~CjAhFgAtAkF`@mGZqF|B{BTyAvDuBtB{EC}Kl@iG[cE\\gHvBqF?wA|@iFiBaIeAkHGiFeAoCkBkCaA^aA~@mAgB_CqBPkEf@gEiBqHmAqCcCkCw@aH[}CVUgArDkC`D_AvChAdE]pBVp@qAkCeEaBwCoFjAyG}B@wAsDsEoB_A@oBlBm@cDcByFc@gGEkHz@oDhAyBhEkAtAeAxBiAbE{I~@kFlCqAzDoH?kDmAkI{@hBrDlAhAbAxEdCbErFc@hDdAs@jD\\jFdBDAbB`CuBlApBtHtA_@fBlDE|A_AhClCzEjB`D~BvGx@rC|AvEt@kB{Ah@mA}CeChBiBlDfA`FhCzB`CbEHdBzAiBfCcD^ExA}Cx@_FmCqDlAaCD_@fBzGv@zAjBbEbBdBjCwElBmAbEyBvDgCxCBrC|Bt@o@jBuB|@\\`Dr@|ClBPpCxE`DdGxDlFrGxDtGfD`FTxBxAbAaApBbBvGbBpE\\dArElBJr@qCm@mAjG_A|A`@hEs@|AqA_@qBvDe@~AiAhDhBbEV|CAjBp@fBZ]dFhBEPo@DqApCx@vAc@rCkAy@eD|Be@n@wDrE^WkF}DgDGcDDyCtAo@bAuBrBNvE]cAsA|A{BnCrAdDq@fF~BtDrC~CXvAu@hBClCo@jBr@dCrCN}CxBh@hFQ`Fm@`DwAzCg@`A_BnB[hEcC~C{@rAn@tGkCbE_Cv@{EoCZEeBnAgBSaDtEiFhIqAx@yCrC{Ab@y@\\qBEmAvBm@`ARp@wDw@m@Zm@_E_BiCe@sEXiA_CaGWeAmA{HkB[m@"], ["cxVmwCvB~HtAbDhBgDTuCsBcEaDwCyAz@`@xB"], ["g`AadHyBZUe@eEc@m@dA}Gr@T`Bo@tA~C]`DfAI`BVx@aAdB{DbBcBdD}E~C}C?o@j@v@f@sDfAqCz@kDfBSd@d@fAlB}AlD_@rA~BoCjAVfBpAJjBhDrANA{@g@kBk@i@lAsB|@eBpAWz@uA~Be@tAoArCKzCyAvDcCfCqB|@eEbBW`DaAzAZrBzApANUwAjBWr@{CeA{@z@kAGw@uAh@aBGoBcAa@\\_BEi@oAsCXwAa@OqA"], ["g{AkmFwCQfA|C]|@h@dBvCkAdBSvGeB[gBiFRkEU"], ["mu@s~FcB}@wBlCZfGzAKnA`AjAs@FqFl@qBmBH"], ["_}@svI~B\\tCYpAoBDkEa@u@w@{@oDKgAw@_Dw@DdBz@`AWv@kB\\n@jAz@UnCnCu@`B"], ["ilAu}I_AbBvB`DpEoBZsAeHaA"], ["ve@uoItCg@zB@g@kBf@iBgDGuEzBjBfC"], ["hRwlI??[sBbC{BBCpFa@n@u@gAyA`Au@jB|AHaEdBeBgAmE{CaD_DNoFQrExEiE[{E@r@`DrDrDmEJOTsDjFgC^yB`Fy@nAqFd@V~BdBx@oAfBrDfBjG?rIt@|Ag@bC|AvDUlCjAhBg@eHqEsDk@@?vH_@x@oAqE}@lBkBe@cCiHR"], ["tyAk~Kl@`CaFfCbGxC~PfClDb@dG[lP_AcEwArLaBcJe@H{@bLm@gCaCoH]uHfCoHmB{Fx@eIkBkIL"], ["_aHsdGy@DgCxByALa@s@uBoAiBhBeBlC{AF}@t@bDN`@zCb@dAfAl@CbBp@HzBgBeAcBz@y@hALjFrCDiCxAa@rAu@w@_AhBcAg@q@jAc@h@s@q@_@sCx@kBJ[W`BkBq@["], ["k_HcqFfCYdB}A^iAi@E{@t@wA??\\oArB"], ["wxFmnGWWgD`@eH^qG~Aa@d@yB_@yDh@}@pA{Bl@p@ZaBjBZVjBKrCy@p@^tG^~DaBtEF]sAp@iCpBgAnBWfA{@"], ["erVknAdByCkDFeAfAt@jDtAaB"], ["e}Vk}@q@w@U{BmBK^dCsC_ER|DfA`A|@|B|@z@zBiCi@u@"], ["{tWqs@SbCKnBbAvDhAkE|AbB_ArCv@|AjFsBv@qC{@}A|B}A|@pA|AGrCnB`@y@mAgD}By@mBiAeAxAwCu@_@yAmCEJyCaD|AQdBMhA"], ["scVgy@hG|DaBkCqCyBwBkCgBeEc@bDbClBhBfC"], ["s{V{pB`@pAeAnCt@dDtB`A\\`Dk@|CiBTwAWyFnBPjB_An@RzAzCaBhAgBr@fA~BuBrDZbBk@IqA}@s@z@m@XfA`BqB\\wAF}DqA`ASyHaAuDwB@{Bv@}@s@Qr@"], ["wyVkfA^}AwB|@_C?BpAzAtA~Bz@D}AMeB"], ["koW_kAw@|ExCs@C`Aq@zB~Al@FmCz@I^yBuBN@iAxByC_EBu@jA"], ["qpRkg@a@c@cDvAMdBcCWaAqAm@PuBxBsAbCKfCTxASdAMtBeAt@oApDBbAlCJ|DsCjF}CVeBpBeCZeDfAkBUqCj@sA"], ["w_V{XjDa@dF?dAbFlAdAdBtG`Dh@|Dw@~APrBdB~BO`Ch@fCqB`@eCsCdAyCe@g@iDuAe@oFi@mC}CaB_C{AfBi@cA_BDK_CGaByCiCeB{CoAAeBdBItAcCv@eDz@LlAdCHc@`BrCbA"], ["qpUaa@F`BJ~B~AEh@bAzAgBoAiAiDmB"], ["iuAuaHcDNeBm@mDCe@a@a@@e@bA|Cr@RpAdARAv@lACbA_@d@^hCEk@Qn@uAUaB"], ["uqDsnLZjCqHbCxDvCiF`FfCjDsDtCnA`CgHfCjAdBxDrBjL~F????hJN~IfAdIh@rBkB`EaAk@eE~AsD_BsBsD}BiMwEeCi@TsAtG_B`AmADsHvHgChGaBuBs@_FhBcGIwEn@}DwAaBsCuHaAaGlAtAlC"], ["_lCyqHv@r@d@pAj@RtE{@`AJl@l@|AXTM`B^lADNf@fDVhAUdBq@ReAOY[k@yABcASCSe@GMm@m@I]c@{@?KJqAYeBdAuBi@}ARoC[}DjA"], ["{|Am~H}A`AuCNJv@kBf@]q@gCTS|@sCJ{A`Bz@?\\b@l@HLl@d@FBRbARxACZj@zAe@|AJzC}@dANnBnArC_ApBuAdBo@RsAb@{@qCi@iAq@oCg@q@e@s@VyAU"], ["ubFcyAToAuAeHSeC_A{@qCa@eBqBsBfFw@vDkB~AqG|DmBpBmBrB}@bAaBz@z@n@tAObAaApAsBvA_Ar@eAlDoAhCAn@i@tBl@vByA~@tCfFi@"], ["wuZ{sFvDhEClEjA~Ca@bBfBjC|F|A~IJ|GdFdCmAFuCzIj@jF~AhF@iErCdCrI~BrA`BmAq@sD~By@nAiC{D{@iB}BgEgBsCgCmK{@uEf@oEaJeC|AeHgEqBmA{BsF`@_FuA_CsEc@kBtGD`D"], ["yf[wqGmCsAk@~EfHt@nDdExHgCjBzE|E@ZeEaByCuEKy@sG{@{CiFnEyCbAkCh@"], ["izXcpEmBwBqBVqAsAsCh@YbApBxBpA_AdBl@t@tB`Cy@A}A"], ["pjJb}B{@lBLnGsEd@qAe@eCt@e@z@QtDWlAiAFkA_@gAb@?lBZtBf@rB^nDtDxC|C^~E]hEw@eEoH\\wAlEmArFsCbD]nJeIoAoFCkB_BoD}Iy@wDB{DdBA|@"], ["_dIwuB{ChIaAjCnCt@f@vABbAfErA~H|ApDlCvAHz@KtBrA|Bd@fDHp@Jj@r@t@N\\p@bBC|@XjCIr@sBEmB^y@f@sCx@qAi@IT{AWe@FwAwA_ARsAs@aBqAr@u@QgFCc@RaERkAIq@`A}Aa@mCqE{DyA_QkA"], ["oyEovD}E^uA}@o@gAwCYa@cAaAa@fEgEoKcBg@]oFt@iHjCsPpKsJNqDRq@|AmCCmAjDaBl@a@dAgCrAKpARbAY`Ay@v@Y`A]p@{@d@w@Me@jAGn@kAhEyQbBg@i@{AlCdCnKvQfE~PjAzDxAlCpE|A`@p@aAjAH`ESb@SfFBt@PpAs@r@`BSrAvA~@XsAz@}@NmAfBgAhBgDv@cDhCgCxAa@bC}DVkCIuBrB}E|AmAjBi@`AqBKk@v@gBx@m@lAsCxBaDdBgCbB?_@mBGeAYoA"], ["boHxfNeB?iHk@mHj@uFtAuAxBWtAGdBtH|@dIp@vJn@`Lf@xMKdGcAa@qAkLu@kDcA}BuAyAiAwBeAaCqA??"], ["h}KrtNaMDoLRsCqAiBeAoEpAz@dBx@xAbL[|LJxFaA?GlBy@"], ["~lMl|L??iCWgFFy@eBKiAB_DqB}AwD_@iBhAm@hAuAxAaAvAw@xAWxAb@lAt@hAjFZ~Ed@dGCaBmAhFZ~EZvC{@JqAyEmA"], ["p~Rh`M??}Ba@}FXaHN{EZyEWuBpBzCOrFFtFGlGJjEe@hBsA"], ["j}VjkM??i@cAoFb@aG^oFc@pBdAzDr@tGOfEeA"], ["nzWbjM??oCi@gEl@qHlAtBG`GQpGw@"], ["d~^fjN??wBkAsJ^gE|@yCfAu@xA~JXdGeAtBeAFK~Bu@"], ["_db@lpO?``@~heA??a`@K@oDsBgJ|@WEsE_AY@W@aHpA{FqAm@KkQc@}Dn@}AVmH`AwPr@aM|@cWl@_Qu@qYf@aN|@oOy@kPw@k@}ArWGdSm@fDoAxOi@c@yAiAqAiAkAd@qAlIu@vCeAtH_AeNJmM_@aHbAcJ{@iIiA_DaAdAqA`Gw@dHy@zKKfJ[bKS`CiA`G}@zCeA~@cFaBRuD|@gIS}HYcDtA}HSiGk@yFu@cFaAmHSFiAfAkA{@eAaGc@uBbAqHg@eFq@}GCmGSmGo@wEi@sFk@{CJgCNiH[iGb@sGCeG[mGRiHRuGGaHBiHBqGGkEy@qF_@yFh@oFa@wEgA_C~@eAdAaC`AoEy@mFhAoGVeFt@yGI}Fc@mHFmGZqG`@iBuA~BaA`BeAbGOnBkAj@iAdAsCwCXeGJcGKiF^kEz@uAdAmGJcG[qGg@uFUkEl@iGOkDwCaDxAeFb@{FScDlAeGFqFVoFh@{CiAmAeAgElAqGSkEj@iC`AiGSoEi@kEs@qF[yGU}F[cEk@uB}@o@uAVqA|@mAfAoA|@mAr@eAHmAQmA}AkAoAqA]mAd@uAVmAaByAmB{@_CiAiC}@_D{@mAuAmBu@}Bs@_EK}B}@kCg@cDUqCs@qB}@{CWuBr@jA`AhEx@vAj@rC_@bDRhCl@nCr@`Bx@ZlAKjA}A`AhCn@zDLjBbAtB|@|BtA^hAgArAiB|@cDl@wC~@qAlAk@hAy@lA}AbA{@hAYvD{@hAOlA}@nAZhBlBpArB`AjGZxAdAvB`AlHjAhG\\zFj@lGh@~CpA`IF~IG|HNnI?}@lAqHb@_Fv@{BdA|E|@xIS|Gr@HpAFlAiF`Ak@jA}FhAgL^gJt@}G|@kJ~@qN\\gNv@uIx@sJbAcE|AaBhAqFeAiI{@{I}@_Ls@cJu@qNCgNZsKl@aCuAuGy@yNCiKk@wJi@_L[yLc@uHq@jCeAvAgA?iA`KFzK^fK?t@kAYsCyAk@}Gm@qIo@qFy@sFy@sDoAqGa@mG[iCOsHGeHYwFg@qFo@{Em@uG}@oDcA{Dy@y@mArEo@gAqAcC}@oEg@{Em@kE_A{CmAaB}AoCu@oFHaBbAmFFGkAeBmAwERq@hAoFJaGa@yFWcFJuApA{EcAkEa@aF[_F[kEm@}E_@mDi@wBgAuCr@oE[oC|AqBdAaFe@yAmAkEw@eGJoAhAcDiAwEWiFGsEB_FVuEJ}A`AaCz@{Ec@iFGcF?}ECgE[sEUoDw@{Da@kESwCw@mBkBqBcAoE^mAdAkDn@oEOmCdAsCr@kEo@eAuAsDc@oEaAcE[iFe@}Ck@cDm@{Ck@{DVsDeAaCw@{DBcDm@g@gAgDu@cDg@gE]wDOoDJ}DP_Dv@StAoD`AwBv@oFVeCt@cDt@_EJ_De@kDqA{Dh@cEV{DVcELgE?cDnEFr@TxA~Dp@|CjA[lA_FCZlAdBhA|ApAwC~@gFPeFa@mBmAcAkAkB}@}By@s@gAgBaB}BQcFGgEWiE_@aBmA{@iAgCiAcEs@iDe@kBcAqBa@qC_@gERsDScEWyEJqCu@eBeCiAt@}A|AgDf@_EN_EWkEN{DB}BSgDJwCj@sD[wE?wD[oEZcCaAeBcAiCu@yFuCaCZwCt@eCfA}FvBcEBwD?wEUwE[cDu@gC{@_FGsCi@}Cd@eB~@kC|@{EGgCr@oFp@yFRoEO{C}@eC_AsDOsDZoER{D_@sD?oDRwDRsDc@wE]kEGcF?wDSsDOu@aBGqA}Bt@a@xAcArAqA`AgD`@cFIeGCsDKeG?{DCeGF_FNmC|@f@hAaCz@uEl@_Fr@aG`@mG^kE\\cFB_CaAqDv@wC|@oDl@sFReFVaBlAcFn@wCdA_F^eFCwEJmFCoFL_FZmEn@oEd@mCz@VlAhBdAxAxAdAdA|ArAdG\\tBfAbGh@xAlAfCjApC|@pApAp@hARxACjAqBlAi@hA}AdAsJZoAtAhJ^nHh@zJFhDpB`@|AtAhAhBjAiG`AeBpAkDhAsFbAuG|@kH|@kM~@cB`B_Qh@g@NsCx@iPq@iM|@wIn@"], ["qkEszEMA]o@oCBuD{@fCrAMd@REd@L\\CHFBSNKd@At@Nd@I"], ["qkEszEe@Hu@Oe@@OJCRIG]Be@MSDENjEpA`BYl@oA}AG"], ["pLyzEkA~BKxBcArEu@h@d@lAdG`@xAhArBNFrChFnAjAbBbDt@fE\\`IrC?jF\\?EjBzBD`Al@xA?fAYfDT`AzC|@L|AzFtGvE`ArGpAxAVfA`MNB?I}AkAu@aAgBLcAeAkCmB_CcA_@u@sBCkBgAyBeCiA}BkECAcBmAyDU}CgCcBu@gDeDp@yFkAkDYgB_CgCiE{AsCqAeCoE}@yBsC?wBtA}DMoEj@uA@"], ["meFohCxW?fW?bX??_V?gUz@_Ds@{B^uAgA_BkGC_Et@eEx@{A^yC_AsAw@oDQmCXu@bBm@aA_Dn@{CHcBq@??mBbHSr@v@nAh@vCv@fBl@`@`A_AxAyAnC}GRPqApE{BhEuCvHiAjBaApBqDzEf@b@G`CgFrDc@f@"], ["g{CohC?nKdF?@rA|W_K|W}JhElBlChAnBmBzHuAvA}B|C{A|Ab@dAoBFuAtBoCoAsAP}BYmBNyAc@cDH{A`AqDaBm@QsATsAiCkA{@_AaBy@KyCiFdAsAQgD`@iGvA{ApDsDf@yGrAuE`B_Bs@_B{Al@wC}@aBoC}AiCYoGf@cAxAiA?_A`@eEVo@`AfA~A_@tAr@zB{@~C?fU?~U"], ["uiH_q@tPvQbGFpDlC~BBt@|@hC?nAcAvDrAx@rAdCOj@Wl@D~@AzFiDjC?bAaA?oBfBa@tBwEzAo@`@oAdB_BzBMcAqBkBE[{@@sD{@qE}Aw@SqAuAwCwBcBqAcE_@kDgFh@_AuCwBxAuBm@o@h@iC@mDnAs@dAwA~@qArBcA`AdAvAbA|AOt@C|@mBBo@Om@b@j@fAiAlBiA~AkAfAmSjFgD?"], ["ugGkmAuAN{@o@o@|@DrApBl@uAv@hAhBl@c@n@NlBCB}@Nu@cA}AeAwA"], ["}pHifA??@B?pA?hE?fBxAxBjCfDfD?lSkFjAgAhA_BhAmBk@gAiAiB_Ab@g@rAyApAaB@}Ds@yEWoD}@aBKgAe@qBE??"], ["{rE|DtKNzECdAVvB|@n@SAuCm@kAKaDi@{AkAgBkAu@_AeAnA[KiF??sAu@}Bj@aDm@kC?{B{A}AhCWdBwAbFhApC`BbCx@pAArE"], ["c}D`FoApBJtBx@V??hBK|@pBxBOSmBYMGwBy@w@o@RwB}@"], ["_sBqiGpDkAhAsAjAk@zAiAj@}@`B}Ai@qAgAl@i@i@}ACkD^iCA{Aj@??gA?p@vA_BjA\\|Al@Hd@P~@l@\\lB"], ["{jCogGcB~@MbCd@F^`@jBClAj@`CPpAq@\\uAYcA??Y@Gg@uB_@m@GcAI{AC"], ["utB}}G??yCs@{BFkBnAU|@yBn@OpAuBx@}@k@q@Vn@`@e@b@p@j@QhAaBtAlA|@^~@UV`@ZzABbAHFMWWWo@\\?d@c@`@IX_@b@K\\[`@HZbAn@LOQjAi@`AS\\[r@a@m@I]}A~AkAq@wAfA???kAkA~@w@n@mA"], ["m|BeiGt@PJe@vA`BM~@h@Ov@_AtAg@Ua@]mB_Am@e@Qs@`@]ZaARkAh@NPd@j@"], ["u_CsdGLgAn@Sh@u@e@k@o@M[cAa@I]Zc@JY^a@He@b@]?Vn@VVGLl@FtB^Ff@XA"], ["n`KgbAsBYg@DFtCdDTb@Qy@u@BoA"], ["u_E}TnDcCl@uAnBh@zAMt@`@xAWxBcD^_ArCoAr@wBpAuAfCgB@aAjBoAfCmA{@UeAe@q@qDw@{AoC[a@t@gBtBu@NgAa@oCF[f@gE?Eg@gBe@Sy@kAi@gDrBeBScBoCmBmBPwBn@y@wBIMm@}ALVrCWnCeBlAWdABbB[BAzCZz@jBDbApB{BLeB~Aa@nA{An@uBvEfCbCxBvBzBzAjC?`Dl@|Bk@rAt@"]], "cote": ["d~^fjNwBkAsJ^gE|@yCfAu@xA~JXdGeAtBeAFK~Bu@", "ve@uoIa@nCvCpD`JtBzG]aDoEfBkEoG{CwC}AgDGuEzBjBfC", "gpZfO{IhCoJpBiCdBoBdB]tBmIxBo@hBvDTk@dCqD`CaCrEsBEFvAyC`@z@d@sErATx@bCLp@s@jDUhE]xC_CpBmBfBmDdGwAfDx@xB`AWpCzCdAnBa@nEGpDcDhEg@p@v@|FDuAaD}Bw@r@yE~AgDbKgDdDQjHwDx@~AlAPj@gA@wAvCaBwEgAmCBNu@dH?lAuBrDe@rAaBmGo@eBaAaIpA]hAw@bIoEvBeDsEeFyBqD?iDdAuCfAuEd@", "whUi[oAiAiDmByCiCeB{CoAAeBdBItAcCv@eDz@LlAdCHc@`BrCbApBtDsCzD`@zA_FxDlFV`AfCGrD~DhCDdEjApH\\eAbFxAlAyBlCKbB_AlFfAhAaB`CJdDW\\kGbBw@~AiDZoDWwDuBeCsCdAyCe@g@iDuAe@oFi@mC}CaB_C", "`hQssMlBlA`HOpFs@iByA_Hu@mDdAiA~@", "niQocNzADtJMt@u@sK@kCd@VT", "t{QikNmFdAt@fAfHh@`Dm@tAkANqAaGFuBJ", "|eP}oM`IYrO_AdAmBVaBfEwA|KWfF}@iAqA}KJ}E~@gK?mD`Al@jAeFj@}Bn@mGFcHP}Hk@wKOcILuEhAm@rA|Br@hHj@~FW|P\\xKB", "jvTmgNyG\\bAz@rJx@fH_AaD_AcHS", "ntTokNcGf@rFd@jI?A[mE{@kBH", "f}KurBeBNc@f@r@p@tC?rBDJsA[]cD@", "xcNqrBeCPiBn@a@t@jCB|@`@nB_@pBiAWk@sAMm@D", "daO}oCmDL{C@{DbAoAhAyDUgAl@gDzB}BxAaAAuBf@Lv@sCHuCpAVl@bCXdCHhCO~GPeCmBnAs@`CMbAy@n@qBnBFzDu@z@i@bG]dAg@iAq@bEIlCfBrABZn@bBTrASgB{@k@iAyAk@eBe@wCSo@U", "nzIw_IhB|BdCnDcCcAeCh@dAdAoDv@}Aq@eE|@|@pCkCa@YhB}@zBrAnDxAFbCe@k@cDv@WfFlDvBGmC}A~Do@vEJbKE\\{@{BeAtAu@gDyBmE}H{BqBmDcA{AFd@t@", "fkO}uKyEbAeF|@Q~AqCOoC`ApD~@vHo@nByAdEhBzGfBdAuBlGRmDcBY{CcAwDoCNc@vAgB]sBr@", "hkNecM}DoAyLdBsG|AYvAsJm@oE~BaNlAoDpA{DxDnJ|AwM`C}Hj@_HvDyHL|@jC~IfFtFuAxH_EbGXVpBqErBoGzAqAt@aCdEbAnC|Fw@rN_DyGlDoEvB_@dA|OoAjLsBrFaBeAw@hHeB`HaBAx@`Q^hDcAcCsCwJC{KW`AgAeAcBaGaEv@yAjAcApH_BtKcA_Cs@rE{BnDK|CcAhBz@jJXtUm@fLy@bI]dDeAoE{AzG?~@kEyCqDmEqAcOs@pC~B}C|BwDaDyNqAwIlE\\bCkKy@", "rmQinM_LD}Jn@hHpDnFf@tEtCbFGzBoDAcBgBsAgEu@", "vrRmeMzEaCkF_BoFh@cJYs@x@xD~AmHtAb@rDfIlA~DQhCkAlNsC?eAwKV", "z`TayMqD_@qEFc@`BxB|AdT^vNtAnHDXaA_LwAf[VvGc@oGcE}Dw@qPbAcJtB{IN|G_EwDgAmETcA~AmAdA", "x~VwzMqIsC{KaCqH@qG]ZxCxCdAxDHrJtA~H\\lGk@", "rvVipM}Gh@}NHcEx@uErAzFr@hNjCvFjC?vAlO~AhBwAlMiBuAsAiCqCmDcCbEyBcT_@", "lo_@kxJ_DPQjAxB^bCe@xBu@eEa@", "t|\\iiJeCLsA|@lD|AfElAdBs@\\}AuDgAiB]", "l|XwpI_EOz@bFmD~CnA?vB{AhA{AbB}@d@wAK_A}AX", "znWewHcB|AgErAqAlBbBZhI{Ax@eArDeAb@w@lEc@jAmBOm@qEj@yB\\{DRcAdA", "hp`@smK{Bd@{BSaDr@eEXNTvCh@vCi@jAe@nDJn@QKiA", "hrSsnNgKX{OhAyC~AmApAdIUhI_A|LGaE{@pFo@LkA", "}lEe|EoCBuD{@fCrASt@jEpA`BYl@oAkBI]o@", "icDs{EXz@~GNC_@tFg@e@uAmBbA{CIsCLB`@kBW", "stH|lAu@tAq@bC_@nFs@|AR~Ab@x@bAuBd@z@e@rCPtAt@l@JfDnAhF`BrGzBxJjAtGxAfFbDn@lDrArBq@|CgAv@iBJqDdA}CRoCc@oC{Ac@AaA}AwCQ}Bl@_Bd@}BNwDeAoB[}BaBGoBi@iAc@wAAqBqBeD{B{@cBZuAsAVoBiCAwBaAyAeAtA", "ct_@hbB{BrB~@XbAwAGu@", "mq_@|`BZw@BwC_Bz@_@`Dt@Yh@J", "yeYbj@RwCc@gAi@aAm@x@@|AdBhC", "boHxfNeB?iHk@mHj@uFtAuAxBWtAGdBtH|@dIp@vJn@`Lf@xMKdGcAa@qAkLu@kDcA}BuAyAiAwBeAaCqA", "h}KrtNaMDoLRsCqAiBeAoEpAz@dBx@xAbL[|LJxFaA?GlBy@", "~lMl|LiCWgFFy@eBKiAB_DqB}AwD_@iBhAm@hAuAxAaAvAw@xAWxAb@lAt@hAjFZ~Ed@dGCaBmAhFZ~EZvC{@JqAyEmA", "p~Rh`M}Ba@}FXaHN{EZyEWuBpBzCOrFFtFGlGJjEe@hBsA", "j}VjkMi@cAoFb@aG^oFc@pBdAzDr@tGOfEeA", "nzWbjMoCi@gEl@qHlAtBG`GQpGw@", "ck_@vbCcDzBgBzAjAn@lBu@nCyA~BiBbCmCZaAuA@oBbAwAbA_Av@", "_y\\zUkA~@WfB|@t@d@uBl@mAzAaApBsAnC{@w@o@kBv@cAj@sAn@oArA", "sp\\nc@lBn@dBn@hB?bDy@pBw@O}@sDZmBM]_B[EShBqBMw@eAoBeATuBwBCg@^BnBbAxBfBN^v@", "gt^n`Aw@dAjCAjA{BwBp@g@D", "oq^~z@\\b@rCkDh@wBcA?gA~CoA~A", "il^t|@lADxBUh@]KoAcC^aAh@_@r@", "wd^bq@o@~@Gf@|CuAjBgAjAaA]S{An@cDzA", "cu]zj@oA`Af@HvAk@pAqAIa@wBrA", "gf]j`@{@l@aB|B}AbAZv@v@RtAkAvA_Cj@wC[SUz@", "qpa@lyFjAhBbBhCxCnA`@s@rA]sBcD`AmBvEoAEgAoCeAa@yCFaCpAeCEc@~AqA|CoDpAmCiAOkBnB{Cr@w@pDqCpECgCyAt@]vC_D~@gCNqBkAeBVp@nDz@tBvCCt@z@QtAZd@", "mc`@foGiDiByBgBwAsCkAs@]mBkC}Ak@tAm@pAmCoAy@rA?rAhAzAbCrCdBnAiA~AxCBjDhAr@bCpBhE|CxAbBv@vDC`CaAvEM`@iAkBsCyFeEaCc@oCkA", "az[`~FwBLMjFbAdAT~CdAu@hChCh@IxBEzBkDXcCrBmDC{AcCP_EdAmB[{Ce@", "msWjhErEdBlDl@d@fBhApAhDB|BPnDc@nCThCHtBhBx@IbBx@`B|@nCEdC?tE_ChBe@CsBcBY_@m@DgAWiCTwBhBiE^qBGqBnAaCBy@xAoAV}CpB}CZsAwAtAbAyDcBx@y@lA@eBbB}CP_An@{@UqBi@q@YcBRsBqAoCOvCsAiCaDaAaBuAwCiA{AOu@X}CkAyBU]k@s@QoBDqE{@kBwAs@iBsBeBIoACmBkCgDsAjDuAg@fA}A_AaBwAj@WwCmBaBo@oAcBa@Cw@wAVAq@wA]aBYqCzAoBtB}B@}BPh@mB_B_DyAs@^q@wAqBwBgAgBVgDe@BeBrCaAkB[cCp@iBpAgDp@y@S{B|@sBy@kAPm@e@{A`Br@jBjAnAdADWnAz@bBdAbBMv@_DlByC~@eBdAoCtBy@?gBp@]|@_EbAcCcAe@kBg@wAYmB{@_DZ_BOy@VqBYwCe@g@\\aAo@iBe@mBCy@kAiAw@`BMzBq@XGrAgAbBOpBFfAgA|C_CkAaArA_BlARxAk@jD]`Bq@Xu@hDRfBaAfCwEfBmC~AeCtAXn@qB|BmAvEoAk@oAvAq@_@a@rEmCzB{AjA}C`Dw@~CCpBLzB_BhDJpD`@zAt@pDCpBf@nCvAtDrC`BhAzC`A`Bz@jDjAbBp@tCXhCI~@rBbA~EFvDpAzAlAvBtAdDyAxBa@]gBjBd@nDnCjDu@pB_@pBM`Ey@`C{Bb@wCn@cB`BqA~DWaA_Bn@uC`BjCpDb@gBmB]sBmAaBNsC`DhD|BbAjA~CzCqAEiB|BqCfBiAc@m@~FyBjCE~D_BdJPbGfAbF`A|DK", "e~N_n@\\nErAv@lDl@~A}C`@_HyAcIiClB{AlCaBnE", "qgXnP{Ex@gAxCfDqAdDQpBLhCGo@mBuFG", "}wWtVhCc@d@uAiEIq@`AjA`A", "q~WqLMjBuBPSpAHlDfBS\\xBqAhBv@VnA}Bz@_Gg@_DaAgA", "i_WoDeFGeEoCa@j@~CdEtCd@`Ee@jIHnDZZvCsDpDkByAsJcANzAvA]tAtBnDjA{D`Gb@bAsDdF@bChBx@lAeA_BcDbElAp@w@YkAnCuBMaEbCz@OhFG|G|BZtAy@w@wD\\aErA?|@iCqAaC[_DeBkHi@sAiDsC{Cz@{FX", "{nVb_AhGkCyDg@iB|@eAz@Jt@rAB", "kuVjt@eCOqDiAZnBlHv@hGW?iA_Dg@{Bz@", "cbVfs@{BOq@tAfFf@hCXjBAcAqBmBAu@eAgAr@", "aeTbg@YfA_KRk@qAqJ~AiA~BkHd@uFtBdFjAzEoArDDnEOxDc@fFkArCSpAXlJsA`@uAtDMgC}DsFH_DnAsAL", "ikSvEa@jCeAnBqCPaB|Bp@xFFrH|EBfDeD`GcDrAyBvCaDbBuCvCwGnDeDx@kDhA{CrD}BfBkDvCoBnE{EPeBaCFsHd@qDbEyCfCmBrA}DtEkEBgDfCsBfDwCzAnA`DqBdAgAB", "erVknAdByCkDFeAfAt@jDtAaB", "e}Vk}@q@w@U{BmBK^dCsC_ER|DfA`A|@|B|@z@zBiCi@u@", "{tWqs@SbCKnBbAvDhAkE|AbB_ArCv@|AjFsBv@qC{@}A|B}A|@pA|AGrCnB`@y@mAgD}By@mBiAeAxAwCu@_@yAmCEJyCaD|AQdBMhA", "gkTwpBbD}@DkDaByAyEw@sBBk@jAvAvAl@rBjD~A", "cxVmwCvB~HtAbDhBgDTuCsBcEaDwCyAz@`@xB", "wuZ{sFvDhEClEjA~Ca@bBfBjC|F|A~IJ|GdFdCmAFuCzIj@jF~AhF@iErCdCrI~BrA`BmAq@sD~By@nAiC{D{@iB}BgEgBsCgCmK{@uEf@oEaJeC|AeHgEqBmA{BsF`@_FuA_CsEc@kBtGD`D", "yf[wqGmCsAk@~EfHt@nDdExHgCjBzE|E@ZeEaByCuEKy@sG{@{CiFnEyCbAkCh@", "mu@s~FcB}@wBlCZfGzAKnA`AjAs@FqFl@qBmBH", "uu@miG_CkAa@jD`AxCxAg@n@gCi@iA", "ilAu}I_AbBvB`DpEoBZsAeHaA", "hY}lJoFQrExEiE[{E@r@`DrDrDmEJcE`GgC^yB`Fy@nAqFd@V~BdBx@oAfBrDfBjG?rIt@|Ag@bC|AvDUlCjAhBg@eHqEsDk@xH_@x@oAqE}@lBkBe@cCiHR[sBfC_CpFa@n@u@gAyA`Au@jB|AHaEdBeBgAmE{CaD_DN", "tyAk~Kl@`CaFfCbGxC~PfClDb@dG[lP_AcEwArLaBcJe@H{@bLm@gCaCoH]uHfCoHmB{Fx@eIkBkIL", "e|ZsnIeA~DBbEqAhEgE`JfHaAxB`HaEjEBjCvCwBbCxCb@gDUaEVwEo@wCGiGtBeEQoGyD{AnA}AwA[s@dC", "scVgy@hG|DaBkCqCyBwBkCgBeEc@bDbClBhBfC", "s{V{pB`@pAeAnCt@dDtB`A\\`Dk@|CiBTwAWyFnBPjB_An@RzAzCaBhAgBr@fA~BuBrDZbBk@IqA}@s@z@m@XfA`BqB\\wAF}DqA`ASyHaAuDwB@{Bv@}@s@Qr@", "wyVkfA^}AwB|@_C?BpAzAtA~Bz@D}AMeB", "koW_kAw@|ExCs@C`Aq@zB~Al@FmCz@I^yBuBN@iAxByC_EBu@jA", "lbNeu@eBDuCkCsASAaAc@iDqB{A}BCOi@}CN{CcBmAm@aB_BeAJs@t@d@`ADn@tBVaAxA@fBvArBiA~CwAMk@oC|@eAHwCwFqAX}AeA}@gAjCkCBaClBGbAqD?uESqBxAyCVoB}@Aq@wFKoFChDz@cA|A_DNwC`B_@~CgBCmAl@cChA{B`CEfBiABkB`BmAdAoFf@Uc@aDOuEt@cATsCn@sEfD_@pAgAFm@|AoB|IkB^ChCtCdD}@z@aJ^GfEwCcCyFfAkIxBaBtB^lBgF}@eKhBiHGgHdD_G~EyCx@iDFgA|@cA~Fa@vBnAjIdB`CxGtG|B`FrClDp@Bv@pCMvJv@rHTbC|@lAb@jGhEbG`@nE`DtAn@vBvE?zHjAjCxA~Ex@jF~ChDdEZrCa@nBd@hEl@~AjClB|E~InD~CfC|AxA|DbCpBvA|B`FlBpCg@lBTvDuAfCDxBmBLfB}FjDXhC{BtAH`B~D~FfHjBpKh@zESi@tBf@tCc@dBvBdAjEZ~DiAlAr@[fEgCz@kB_A{@fBvD|@~C|B\\fEn@jBzD?zCdBx@tCcEpC_Eh@dApDjFpB`ChFtDlApA|A_AnEeCrBrAIpDA~Ap@tDfA^xDrAD`FaAbFiCxFsB", "veNcl@oAhB_@fDh@t@k@tDd@rBiAn@jAfBrA|BbBLl@fAGbBhANY|@fCnAlBh@MpAjA~Bb@|BdA\\a@tDh@v@wBvAkA}Ak@vAhBrC~C~B|@jC_B|D~@xAmCnA{C`C}@rCqAzA}DlKcEnJiDfG^v@qAdDyCzBgJxEkKfEOpAiErBi@xGMdI|@~L~@~Kd@`KrBrFWvFz@bDm@jHrAhHhC~HzB`IrAFO~Ey@bEzAfCbApJ|@|G}B\\}@yFeCr@fB|K|EeAbAjI|DpDmHx@pExCtA~DYtIcBbCv@tB}@|B", "rqMfiIcDh@yGdCgGdAgByA_AiCwDqAoCVkAzAcBtCcGvBwGp@xAbB|DHdBeA`AnAjD|@`BEtBOpC{@pE]xFmBlEkBpG_F", "iwGuvNeKc@oHAg@t@sBo@{Da@gHj@jA\\lGXrDNZ^fF`@xEo@qB}@zLE", "mmI}kM}MoDt@yA_MiBsS_CySe@uIiAeKYiCnAdC|@bU`BbR~AjR|DhHbExH~Dg@dD_KbDvBPjSYt@yAhJs@ZkBkEk@FkBmKkDvDW", "ijDksNhHjBbQVjQa@b@u@~GCxE{AiRw@aHn@iE{@yNp@gKdA", "oyCqeN|LpA~Io@iCs@xB}@}Kg@oAhA_Hl@", "s}A}pNkAeAeHE{FdAqSrCtNnAnBpCnDd@|AdDpFFlLyBuDgAjHw@dKiDzC{CaPgAmBdA{GA", "veNcl@`Ay@j@kBq@u@r@Mb@aAbBw@vALf@dAnAp@j@DRh@_BjBv@XZ\\|AH`@wBX`@`AKf@oApAMr@Uj@?h@?Dj@V_@jBk@f@i@Ua@Dk@v@o@lAg@dAYJy@t@c@Mx@f@n@l@u@~@SZg@A}@Y}@ZMZOm@e@dA}@|AqAj@aArA_AbByAU]a@\\MM`@_A\\G\\GTl@rBAfASrAg@lBKx@k@dBa@zBCzAg@jBqA`FwEfB_A`Ds@nBL~CjAdBRjCu@tCe@zD{AtC[`F{AfD_Bp@u@nBKjE}@rA{AtEqBbB}Bn@_BaASRy@m@s@?cA`AyAPoAbAcBnDgEhE{C~A{BjDqAb@o@]{BdBo@tB_Bp@kCjBOrBiB|A_BF_AjBuCdAyCAkAnCoAbAHpBw@^pAa@~AStCcApAsChCa@l@]NYbAc@Cg@`C{@p@k@fA{BdBcAxDy@vAw@zAIhBaBDoAzAgAxAB`@rAhAb@?t@yB`CqBnC_BdBs@EqC\\kB~A}@fCyAZXp@s@zBo@tBsBOOqAJiAkAGyAxCmCtBw@hA{BhAcCzA_DpAsD`@eB~BqB|AWTy@nBIfAu@xDSp@_@VmB`EgEfDuGGm@vAaAzCgDZcDhBkBk@eDDkD~@yCmA{DWuDWsDb@kG~@kDx@{AWg@aHbAiBzDq@s@^cDbAcDX?bKcElCwAjJqAlBqD[yB~FuAb@_DnFqCDeBlBkAnD_Av@mD`GaDjB{D~DM|HChFy@|KoE~De@zIeAtGNhK{AjFsA|Eh@g@hClBLfFf@nDbA|Eh@ZsByAeEsE{@t@q@~FlBfCdC~GlCqC`BzDlCvErAfE|@p@vAvHfB|@|AhFrAhCMxDv@jEbAdD`AvIx@\\a@yE}AcE}@uEkBwFWaBqAuGwBk@g@sCeAa@wCeBuBdFz@`Aa@jBhA`CeBt@fAjAcBfEnAxB?NwBc@gA`CgAbGd@fD}AhCo@?oBxCuAmAqBaDoBgAgBaDMgC^aD_BqCNwC}@d@yAnBc@sCmAxB@rEj@|@j@|Ck@xGTdHo@rAoAzFsBwGsA_MaBcD?ZbBeLG`D{BtFkAlCcB~DsApG_AoBgBaJG{FyAo@aBkE}AcEWyJwAwDLsHkBmHh@qCxAwAe@qIJJl@qH`@kESeL~@_KPyCXiG_@oHz@wEZuJn@yH~AqEPmDsAsF}@gHVkHuAgIq@gCpAuCm@k@}AiCRqIrDkGgCYvCuF_@kA{@qFJqHrAsMhAqG`@cEMmGdBvGbBgJh@{OWiDa@uEvByEeBjEsA_CcAsFI_DSaDn@gEjB_FOaJxAuH_@cHDV{BqDc@uHbA@|D_C_DaDDyAiEtE{BhFoAO{EkFqCgG^iEvAoG`FpD`BsJf@?lEiG}CoF~Bz@tCaEdCoEoCqCkDK{E{GLgH\\kGbBK`BrCjBkChBX`BdKjCvG\\lE{@z@bB~DhDx@tAfFfC|GL|CrAL`CfFVtFbDvE~ElA|CHfFcH`@{AxD{AvCwGe@sJtAgEjAoC|AyFv@sErAiIJyEP`@lD}@fEqC~EiH|DyC_AkBmEfB{HlCiB_I}AaFkCoBiCNeCfCiDrFuCkFqEtAuDbAwHkCm@uIt@mEReDs@yD`AuFrB}@lAcJNDfDaAzFwD^oCtBaHoB}D{EeC}A{CrDcG|F{EnFnA|BiGnBsDrB}Hp@aC~@mAhD{CXoAjAO~EpCjAnCdAfIfAzFbDpI^jLi@jHAnELfDnC|FvA~GhGdFvDgDa@aIeGcLeDiHSqD`B|DdC_AvEaAtCcGbBiI[gEaFMpCaCfAvF`CxLvBfEnA|EnCvCMFiDyIcD~HD|EVc@`AtE~AlEdArEz@hBtB^j@@jBaAhBqABRgA{@j@Pv@dC`@~ACpC`@vAHtBHdDx@eHe@y@d@vGz@|B?EW|@v@{@Fj@nCpCxCLs@j@I`Aq@i@jBq@b@AjA~@jAnB~CPG}@gCdBkAVeDd@tAi@~BbC_@iC~@G|Dy@LSdA[fE|BrCnEz@`CrBbBLdBhAZ`AzE`CnB~A~AtB\\lCc@hCaAjDwAlCAtA}AfFDdCFlAp@xBz@X`BW^wAjAm@hBkD|AyC\\mAi@cCv@mBzCgDlA]hExAb@I~A{A|Bq@`FXpDUvCJpA^c@t@BnAi@f@d@XhA]hAd@pCEtCiBlDXpCm@zBLfDl@tDrCdEtAlB~Al@xA@hCI~Ae@bAlAnD`@nCNjGP`Ba@jB}@`Bg@xCcCtCo@pBmA`BsEt@qArAoDw@wCSuCc@}Bc@_CoAo@uBOgDa@y@gCs@sEm@oDDyBOo@h@F~AhBtBn@xBc@b@\\tAp@zCp@s@h@B?\\e@?@t@`@vAQ\\RfAKPVdBd@r@b@Ff@bAaAb@O]aAZMDk@a@w@CSN]I}AP{AC_AUWW_AJo@Js@Cg@QyAZ_@B}@d@y@l@gA\\s@t@NRHj@ShAl@bATnADvAIr@ExA^RPtAMr@h@r@It@]^M\\e@lAkApA}ArA", "|bOyz@gAfABh@oAHSOu@n@aBMuAq@yBg@cA{@mBJFRoBDwA`@aAz@kAv@", "d_MezBWa@i@CqBBwBr@s@Ec@fAmBCDx@wAFaBhAhAnA|Ai@zAF`AIb@b@lAL\\q@`A\\nAfCr@_@Hw@bCa@|AJxBM|Ad@jB}@Q_AwDXwCNgAk@zAuAAkA~B_@m@w@yBHmD^", "g{AkmFwCQfA|C]|@h@dBvCkAdBSvGeB[gBiFRkEU", "siFcvGcFjA_GhD", "izXcpEmBwBqBVqAsAsCh@YbApBxBpA_AdBl@t@tB`Cy@A}A", "rdBkvBVaBScBr@_BfBuAGsAI}AkAu@aAgBLcAeAkCmB_CcA_@u@sBCkBgAyBeCiA}BkEgBoAyDU}CgCcBu@gDeDp@yFkAkDYgB_CgCiE{AsCqAeCoE}@yBsC?wBtA}DMoEj@uA@_EkBwEc@}BqAaE}@qIa@kIQcB\\{DmAuEAqAl@gCKyEoAkCVDdBiDiAMd@bB`B@zAeAp@XlDbCbBe@jBgBBq@~AkA\\iFdAsAQgD`@iGvA{ApDsDf@yGrAuE`B_Bs@_B{Al@wC}@aBoC}AiCYoGf@cAxAiA?_A`@eEVo@`AkGC_Et@eEx@{A^yC_AsAw@oDQmCXu@bBm@aA_Dn@{CHcBq@y@aALKs@{Ai@wC[q@EAeAcDcBkCCEPyCo@qAhAyAkAkAxBNfDm@fCrBnHT`DiBvEGl@rAhCV`EkBxEBtBeEpCoB_B{C|B}A}E_EsHGsAwC}JXoFaCgFw@kIC{IjC_HlAgF]kDPkFiB]sAp@iCpBgAnBWfA{@~FiDbFkAjDsBoC_@eDgDnBoAgHoADk@rD^|CNdC~@zDHjDjAKzBaBn@kEKf@fAxE`@nGrBlBg@k@}AzE{@c@e@_EaAx@m@vHq@JkAxDXhAlBzCrCEp@`Bj@z@Qv@nFfBrAhAlCaApBWlAmD~@b@p@lFHtA|@dDjB~@}ACg@xBEfBSrFr@kCpBdB^nB?hBgBb@j@k@vBcB|AjAj@oBzAcBx@AnBvDs@y@dB~BRkApDbC@bDuAhA_Db@eClA{AdBqBLw@`@MBm@lBaAP_BOgC[}@`@_@h@Ov@_AtAg@zDiArBgAtD{@hDqCi@OzAsABcA~B]|@tAx@cACcAGCk@Q~C]`DfAI`BVx@aAdB{DbBcBdD}E~C}C?o@j@v@f@sDfAqCz@kDfBSd@d@fAlB}AlD_@rA~BoCjAVfBpAJjBhDrANA{@g@kBk@i@lAsB|@eBpAWz@uA~Be@tAoArCKzCyAvDcCfCqB|@eEbBW`DaAzAZrBzApANtDnBhKu@bH~@TxBIrB|DbC~Fj@P`AxBnBlA`DmApBrBxAh@`CvCf@lCxC|F@|DC|BfAjAhA`BOhAcAv@qBxD_@pAr@fB[fBT]{CP{BxAQn@kAOaCoAiAMoAi@wBBsAf@gAFcAImCpAwAyGoCuFb@kG?sE`@eDKcIFgBwBe@mKnEqEpCeBpHkARqCaGk@oIr@|@cF{DtAqM{C{@cDmDg@_Dg@gBu@oDeHoGsAgDDe@i@gDKc@j@gCaBl@kAFoBpAoBDkEa@u@w@{@oDKgAw@_Dw@DdBz@`AWv@kB\\n@jAz@UnCnCu@`BCjAiEn@@dAkEe@oBu@aFlA}A~@gCy@wH{A{FcAgE`@On@_E@m@wAsG_Ah@gDEuCaB}B{DcA_DrC_DCe@wCWuBhAV|BeAPsB{Fw@{F[yE^mEEcFmBpE}AhJN~IfAdIh@rBkB`EaAk@eE~AsD_BsBsD}BiMwEeCi@TsAtG_BvIx@`EhC_@zB|H~C`KjDpCxGmCjC_EnBvD`FnEl@jAnIpBzDpFSpB|CfFH|@}DfDaFvC{GdCyBjKfFhGl@rGeBfAuE~@mMwD_CoOgDkKoEmJuG_NaKoIuCcP{FwLwAgIJqHeDkJFgJg@oRrC~Fr@yE|BmEeAiIxBaPn@sV`FyC|AMdC|EfBfIt@zZwCrCXeIpCMzAKlEaGz@{Cr@Y_BvBuA_CkAaNzBiDo@fCsCqMcEyDJyDdAsBiCdDuB}AyBnCyBoP~@qBnBzFV?nB}CbAsHi@q@_C{a@kGuCHbExB{FTiCeAwJEgHqAcFvBcFcCpEsBgBaAmQz@uG~@sUbFeCiBjEgBBk@pFQaA_BjB{CD_AqJsDcCuDsCg@qOr@i@nB|D`D{B~@_AjCl@pG}ExBtAdCfKzGcF\\oAgA{Es@u@aBkD_BrBqB}AcCzEOn@oB_DgEbGcDeJeCl@mCcBCgBlBlA~DuEd@zAoCoIoA}KIqJpBpDeDRuE{Ig@aNFoLY`DgBgFcCeFCcKcBoOYaAw@mOQcDj@_MiBoJBw@uA}DuAwMqAwI`AnGn@cM^u@`BuDo@iQ@aM`B_DhAn@fB|Ez@lOlBtCz@wFZgHp@sDe@eB~BwAq@_I_@aS^o@|AcY\\KyCgLb@_IAaIhB{A~BtBrA{F|CyHnA_EqEaIxAsIu@cK|@qCw@gIZnCyDgGuAmw@`CiDtBkOxCgXe@mK^eDrAVpCuFv@kGg@aJEyJf@_KSwInDwF_A`D_CwAyA}Rv@_LK_Q~AwGvA", "_db@cuK`GxAbGOsDhBwBdD{At@WpAr@t@tJk@lPtCpDVpHjC`HxBhAzA|GiChOzCxAiA~DtAjG[~@bCnF`EEnAcFj@XbHxDFtAdDsAtA|IfBdAbFhHn@z@jE~GxDhAiCtAcHnB{L_BuGiDuBI}AuHm@eJyFwImEgJ_D_DyGpFNvBdDzNzEbDuFbObArNlIcDzB|Lr@rHRMoCvH_@vFbB`Rc@pSz@fSdK|VvMyHXaBzBaEj@_CaB{EJaHzEEhDzCfEPlFxA~HlH`H`AhCnGhFjGdF`CtBhGtB|B@|B_BjGpC^`AjAKtAbAz@bAGnCfBj@b@`@jAz@bC^vAt@DvATTmA^qBvAkDjFq@`CAdFjAlBrDd@~CpArDPVkBe@uCvAqEsC_@hCkD~Ae@Vd@x@NFe@r@Qt@_@w@wAm@WPc@s@kBL_@rBU|Au@vGx@rC|AvEt@kB{Ah@mA}CeChBiBlDfA`FhCzB`CbEHdBzAiBfCcD^ExA}Cx@_FmCqDlAaCD_@fBzGv@zAjBbEbBdBjCwElBmAbEyBvDgCxCBrC|Bt@o@jBuB|@\\`Dr@|ClBPpCxE`DdGxDlFrGxDtGfD`FTxBxAbAaApBbBvGbBpE\\v@dDLl@lBJr@qCm@mAjG_A|A`@hGhDfD|Dj@hCyCrEyDbGuDzByB~C{ApJZ~IdDbCdF`C`DdDxFxDfA_Cw@gCtCqBdD[pAgBdBoEpD{AjDB]{CnD?NzEjBbH`ApDMnCaCDqAtDc@lDoBpBwBVgBfBm@PuBxBsAbCKfCTxASdAMtBeAt@oApDBbAlCJ|DsCjF}CVeBpBeCZeDfAkBUqCj@sAnAmA`@aBhBqB`B}A^tBd@oBU{By@_EPuC{@wC`AuBOyEpAgB~@oFb@{FvAeD`CbBbFnCnBQzBo@cAwFh@yDzCgFWgArBYlCaDx@gBHeBf@_BpAuBvDGQrA~@lBrAg@\\b@v@UlAQZhAfCAtFf@IvChBtB~GdC~EjFtC|BfE`C?zAbBp@rDfA|AHx@vCg@bGKdDtA|D?rIfBHxAvC{@`AtDx@bAfCnAv@|DyDzAwGjAiEdA}AjB_En@yFb@}BtDqGpAcKz@_G?qFd@{D`HvBlCWdGqF_BgAx@mAhFiDrCq@x@oCzCyCnJd@bIBxGZvJ{@xEm@`FYtAuF~Aa@xCb@fE~AtFaAhEyC~Dy@dC{DpCkGjB^~BaAhAlAvBIi@xAPj@aAvCmAjDaBl@a@dAgCrAKpARbAY`Ay@v@Y`A]p@LqCu@iBw@S{@|@CrBj@tBe@jAc@GEt@}C_@cDDyBDgCgCuC_C}B{By@cAYPRpAXd@[|CyAfCmBfAsCXuBb@yArBu@`AgAX?j@hAvB^v@rA~@hAfCzAIf@n@^bBWdCRXzAAzBjAR~Al@h@zB?lAp@?nA~Av@lBQdC`AzAJnCt@f@vABbAfErA~H|ApDlCvAHz@KtBrA|Bd@fDHp@Jj@r@t@N\\p@bBC|@XjCIr@sBEmB^y@f@sCx@qAi@IT{AWe@FwAXsAz@}@NmAfBgAhBgDv@cDhCgCxAa@bC}DVkCIuBrB}E|AmAjBi@`AqBKk@v@gBx@m@lAsCxBaDdBgCbB?_@mBGeAYoAF[v@nAh@vCv@fBl@`@`A_AxAyAnC}GRPqApE{BhEuCvHiAjBaApBqDzEf@b@G`CgFrDc@f@_AbEj@b@[lEiAnFkAn@mBhAsBfFw@vDkB~AqG|DmBpBmBrB}@bAaBz@o@|@DrApBl@uAv@_Ab@g@rAyApAaB@}Ds@yEWoD}@aBKgAe@qBE_AC{A]iBS}AcAkA?Ct@PrBAhBj@fAv@vE~A~EzB~FjDbHhD~EjFnGfE`DhHfExDvCzEpFl@hBj@l@lCnAn@rAjALZlC~@nAf@dCnA`AzAtFKpB_CfAEr@v@vBK|@J~AeAzBqAdEiAj@_@xAFdEWnDGvHc@`Bz@nClAhC~BzBtDjA`F`B`FtEjAb@jClCpAl@PnC_BtCe@tBCz@a@IDbE^|Ao@`@\\pArAfAbDbApFjBvAhAQrAs@LPfBp@pCVdDr@xAfCdBd@ZtAdBv@dBnBnC`FlElCvBvCzAnEjAdBJXt@xB[`Bd@xEg@vBXrAKlEnAhD^zBjAxABtAgA`ACvAwAFZZu@AuB~@eC_Ac@DyC`CyDdBiD??nCcGrCwClAqCj@aEp@qC`AsHBmFXmBlAqAfBeDfBoFj@{BbDcEJyCP}B[oDcAuDKuA_AsDo@qAqBcC_AwAUsCHqBz@gAt@wBn@wBIi@}@oA|@_Ef@eCbB_CQe@Z}@t@uCbDsEjEiEbCeDxBmEEaAk@_Ao@qCg@sCb@]cA_F]}CnAcCxAa@h@yAp@]Au@nEfAjAIjAj@~CCjB}B`AoCjCcCvC@nD?bDV`Dh@xHtBlBbArDx@rDw@xA@jCg@~B@jFb@jCv@dEhAd@Cr@?lE}AtDwCjDmBdCaCt@MnCoAfBkB`@gAXsCvAuBjAoAr@Yp@e@TyA\\k@x@_@hBsAtAKj@y@?]z@i@Li@^yCYwArA{CbBgAwAe@aBkCo@gBPiBw@cBW{DTeE", "tta@giLhNwC", "~cb@lcBi@IX~ANJ", "erWts@iCE_AYkAXhAt@nEvAfDv@`CtCjDj@VWQcAuAyBeEoAWm@kDm@", "~cb@lpOK@oDsBgJ|@kFeAq@BaHpA{FqAm@KkQc@}Dn@}AVmH`AwPr@aM|@cWl@_Qu@qYf@aN|@oOy@kPw@k@}ArWGdSm@fDoAxOi@c@yAiAqAiAkAd@qAlIu@vCeAtH_AeNJmM_@aHbAcJ{@iIiA_DaAdAqA`Gw@dHy@zKKfJ[bKS`CiA`G}@zCeA~@cFaBRuD|@gIS}HYcDtA}HSiGk@yFu@cFaAmHSFiAfAkA{@eAaGc@uBbAqHg@eFq@}GCmGSmGo@wEi@sFk@{CJgCNiH[iGb@sGCeG[mGRiHRuGGaHBiHBqGGkEy@qF_@yFh@oFa@wEgA_C~@eAdAaC`AoEy@mFhAoGVeFt@yGI}Fc@mHFmGZqG`@iBuA~BaA`BeAbGOnBkAj@iAdAsCwCXeGJcGKiF^kEz@uAdAmGJcG[qGg@uFUkEl@iGOkDwCaDxAeFb@{FScDlAeGFqFVoFh@{CiAmAeAgElAqGSkEj@iC`AiGSoEi@kEs@qF[yGU}F[cEk@uB}@o@uAVqA|@mAfAoA|@mAr@eAHmAQmA}AkAoAqA]mAd@uAVmAaByAmB{@_CiAiC}@_D{@mAuAmBu@}Bs@_EK}B}@kCg@cDUqCs@qB}@{CWuBr@jA`AhEx@vAj@rC_@bDRhCl@nCr@`Bx@ZlAKjA}A`AhCn@zDLjBbAtB|@|BtA^hAgArAiB|@cDl@wC~@qAlAk@hAy@lA}AbA{@hAYvD{@hAOlA}@nAZhBlBpArB`AjGZxAdAvB`AlHjAhG\\zFj@lGh@~CpA`IF~IG|HNnI?}@lAqHb@_Fv@{BdA|E|@xIS|Gr@HpAFlAiF`Ak@jA}FhAgL^gJt@}G|@kJ~@qN\\gNv@uIx@sJbAcE|AaBhAqFeAiI{@{I}@_Ls@cJu@qNCgNZsKl@aCuAuGy@yNCiKk@wJi@_L[yLc@uHq@jCeAvAgA?iA`KFzK^fK?t@kAYsCyAk@}Gm@qIo@qFy@sFy@sDoAqGa@mG[iCOsHGeHYwFg@qFo@{Em@uG}@oDcA{Dy@y@mArEo@gAqAcC}@oEg@{Em@kE_A{CmAaB}AoCu@oFHaBbAmFFGkAeBmAwERq@hAoFJaGa@yFWcFJuApA{EcAkEa@aF[_F[kEm@}E_@mDi@wBgAuCr@oE[oC|AqBdAaFe@yAmAkEw@eGJoAhAcDiAwEWiFGsEB_FVuEJ}A`AaCz@{Ec@iFGcF?}ECgE[sEUoDw@{Da@kESwCw@mBkBqBcAoE^mAdAkDn@oEOmCdAsCr@kEo@eAuAsDc@oEaAcE[iFe@}Ck@cDm@{Ck@{DVsDeAaCw@{DBcDm@g@gAgDu@cDg@gE]wDOoDJ}DP_Dv@StAoD`AwBv@oFVeCt@cDt@_EJ_De@kDqA{Dh@cEV{DVcELgE?cDnEFr@TxA~Dp@|CjA[lA_FCZlAdBhA|ApAwC~@gFPeFa@mBmAcAkAkB}@}By@s@gAgBaB}BQcFGgEWiE_@aBmA{@iAgCiAcEs@iDe@kBcAqBa@qC_@gERsDScEWyEJqCu@eBeCiAt@}A|AgDf@_EN_EWkEN{DB}BSgDJwCj@sD[wE?wD[oEZcCaAeBcAiCu@yFuCaCZwCt@eCfA}FvBcEBwD?wEUwE[cDu@gC{@_FGsCi@}Cd@eB~@kC|@{EGgCr@oFp@yFRoEO{C}@eC_AsDOsDZoER{D_@sD?oDRwDRsDc@wE]kEGcF?wDSsDOu@aBGqA}Bt@a@xAcArAqA`AgD`@cFIeGCsDKeG?{DCeGF_FNmC|@f@hAaCz@uEl@_Fr@aG`@mG^kE\\cFB_CaAqDv@wC|@oDl@sFReFVaBlAcFn@wCdA_F^eFCwEJmFCoFL_FZmEn@oEd@mCz@VlAhBdAxAxAdAdA|ArAdG\\tBfAbGh@xAlAfCjApC|@pApAp@hARxACjAqBlAi@hA}AdAsJZoAtAhJ^nHh@zJFhDpB`@|AtAhAhBjAiG`AeBpAkDhAsFbAuG|@kH|@kM~@cB`B_Qh@g@NsCx@iPq@iM|@wIn@", "~cb@_nLiNvCkOdEN|BeCn@l@oC}O\\gKxDdEvAfIRDbEnAh@xDEvCeAhGy@l@wAhE_@bFXjBeAi@iAlFn@yA|ApBrA", "~cb@_~LYGiD?_Hx@NZlEn@dGJ", "_db@uyLzEH`@_A}FsA", "_db@nfB~Bn@|Bh@XiAcBi@}@IuB}@", "n}J`cIoFwBiDp@wBoA_DxAz@dAlGz@xAeAhDxAbByA", "{mLznH_C~@}DVEf@v@xArHLBkB]qAMi@", "ixa@jlBo@_@eAx@`@fBzBZlBYPwAkAcA{AV", "n`KgbAsBYg@DFtCdDTb@Qy@u@BoA", "fj]o|Bc@P_@Xq@dABJlAh@~@^\\^p@[Ew@^gAIUa@a@Le@KSMBmA`@", "~m]w`CNV`ALb@i@TO@MSOeAPs@^", "vr]kcCDTjBEOWaBF", "tz]wfCQLy@`AJJLCdAEVm@FGs@[", "`c^yiCCl@TRbAe@IM]Sm@D", "tgNq|C{@FeAdDArBp@Hp@sBjAy@k@}B", "rlNmfD}AOcCDEr@xE^LiA", "deN_hD}CxA`@lCd@YCgBxAoA?U", "`oK_eHeA`BoCXyDC`BpAhAJ|FsAp@cAkA}@", "wbHyuGgEmEaEa@yAuByDi@gFwAiDp@gEIc@zBb@`ElD]hD^FrC`ESE`AmBp@yArDgFbAe@dAn@pAIp@}@~BUqC_Dq@y@pBqCvBnD~@zDq@l@hDeCHr@hC{CbAZnEc@lCPl@xHt@zGa@hCcB|Di@~@sCBcBgAm@c@eAa@{CcDO|@u@zAGdBmChBiBxEkFSeCtD}D", "frKuvHeAQeGp@kErAEb@~ABbG}@xD}A", "~tNacKmA{@qADq@f@lAhBvAQr@{@GM", "|kOieKsC{AqG@Bd@hFlBjCCj@u@", "buModL`Cx@~EHp@aBuAoBuD[}Cv@AtAVZ", "nzQorLuDpBzBdAlG{@`DTpGyAoD}@kCuAsEv@wBb@", "vxSwgM_FpA}B`E}@lCmI`BiJ~ATvAfIN_CjAbAhAhJ_@vIu@fFJvJbAxN\\bJPjB}ApGu@pDTtF}CeCUsHa@yGHcGc@`Km@jLNxGChBiAoMoAtH@zIs@gDuCiCoAwOwBkEd@bB|A}L}@uGdBaFeBuD`AcDbEcBsAlCkEoD]gE^", "rqN_fMzEiBIgA_BMiMTwIlBQt@rEEvECzEZx@K", "ciZqiM}DoAyFQ{GjAWt@lH?xKUb@I", "k}[}uMuNt@dFlA~HQrJmAo@aAsJ\\", "ubZ{zMoOHsUhB|CrC`VEhIn@lKaCkBiCgGe@", "bgRu}MOYwCzAGfBzArChIRtE_@CsBfINL{CwEDmHcAwGJ", "waSonNyNpBx@nAfb@lAkJeGeDWuCL", "ciQkyNoLm@cKbBmM`Ep@rDrLVlPw@jImAvCmCpGg@gOgC", "bwQwvNkC}@kEMvAm@qMI_GjBwSnA}CbCqF~@rGz@pJtC~IL~KWtEqAAgA}Cu@jJ@|EcA|ByAiCwA", "l{Py~NiHg@iFEgK_@eHiAwFHwEv@wCkBgG_@eJUcRGiBTaQa@oLJqLJuONmLXmJt@Ft@fNtAbNf@tDl@sLAvMxBdIv@tIbDzK`@~Bf@|QTsGVhCb@eD`B|DdAtHv@|AlAvGz@[l@uIGCn@tOvBhOu@jQ\\hHWxJIX_BqJm@`BoCyBMuOtAnG_CbIe@aDmAaJo@y@eAzGmArAeBaPF}CTwHgA`MWzTJ`JcAdDoAhFy@j@cA", "fcHmcO}SwB}TH_GiAaUS}p@Xaf@|CnJlA|VFr`@RcBb@cUU{QbAcK{@eDfAzErB}NiAi]mAwQd@oBtAnXlCnBl@~R`@oMHhFpC~C`CE|EoF`CxHHfI|@qJhBm@hDtEPcGjDzLNgFnA`AfAxG\\vG?{FfCAxAjKsAdBt@mGp@eGxBkA`DdJd@xCmAtFqBcAfCfFfBmOHsGHvOlD~O|CfQbA|E@lEjAtGrElLjChCFjGp@|Gl@jDzB@jCdBbCdI~CoAzCxAdDdB`ExGJdHaDnKA`EmBdCaExIyFdBaCZsDrGwDgAsCdCeAeEiFkHiAoAsAi@{CbFfAlBZrD\\rFaALgCmAiByDCwKt@vI}BpDeAfEZdDo@}E{DxBiA|CiCnFsE~FmAAsAvOsBfLOtOHfNLfF_AzI}BkO}@sKKvYs@bMoA[mAuV_B{U_BmAiAzOgAmDoAsTiCcHUrAyAyMs@eR_@gRAyE|@qOmB}MjAwGL_L`AzMkB[uA", "fyS_kMkGGwCj@nDbCvHkCcA["], "frontiere": ["znXouIoB_BD_CrI}BjEcF|BoCtDyAdCqAjBgBfE`A`EnBpDcCjCwA`Ew@dEEAqb@?eV", "`{UkjEcFM}FURd@oH`BgMlCkKA_D??qAyI?iAdAeB~@uBvAaAfBq@lBgBz@eDz@}B}CcDCkCnAcBfCeAtBuBpBk@jCw@|A{C|@mCj@mAE", "brP{tAG[cAq@e@UJWo@K", "l_Q{yAEy@Um@Ze@_BcDaG?CcA^KTk@hAm@hAaAyA??qByD?yD@", "xjPibBz@?OaFA}C", "lmPcyAy@Nk@f@{@^GXuAUi@L[RLpA", "v`PcpA}@IYk@]ADaBo@Ei@@i@u@{@f@SWe@WcAu@Ci@S@Yo@SEa@\\g@Hk@Yq@?eAY[[cAB", "peOmr@Ke@Oi@Fc@]Wh@[?qAkAQ", "ziOkcAn@h@x@K`@i@|@Ol@XbCu@\\X", "lbNeu@V\\m@rBd@z@~@MX`B", "x|LshA~B`@r@bBjAx@z@hAVlCt@tBeBJYzAk@j@OpAVhAGh@o@No@dAaGSsBXkCjDoAUoCJqBWgA`@b@jBj@bANnCg@bCw@z@Gj@dBbBgAj@u@dA{@fE??", "`vM\\[vC|@`CzEpEnFlAxBlDd@fCpBpApAeBpASpANDiAy@o@VsA", "pqLlcAnB`@zAUMoHbDtBnDEjAiBdCKi@uAlByBrAsDu@c@?sAwBy@RkBs@eAM}AcFgCcDe@[]sDH", "naLbvIvBEtE??}L", "|kLzeIlD_@`NYrAsBCuCdCJdAgAPsEyCwA_A_CVcBiBkDiAgGTuBwAe@TiAzAg@aAsAzAkAl@gFoAg@`@sFo@kEu@qDwBiA|@aE?wDwCaCDgDqBcEAwDr@c@|AyI{BkEPaEeAuDcC{DkC{Bx@mAg@aADkIyEaBcAoEVq@", "dlJ|rEOaCk@k@@gEu@kEo@_D", "ltIz_D^nDtDxC|C^~E]hEw@eEoH\\wAlEmArFsCbD]nJeI", "pjJb}B??{@lBLnGsEd@qAe@eCt@e@z@QtDWlAiAFkA_@gAb@?lBZtBf@rB", "ntJis@|CtBPfAcAjAn@b@zB^C|At@t@gCvC", "j`J{Jn@FnBQ~@t@xA`@~@HTd@`BIzB}AL{Ap@eB]iDw@eAl@{AbA]YwAl@m@fBF", "vsImMrBi@|ARnAQRx@_@f@Pf@jBO", "zaI_YtBvD|@rCjAjA~ALXw@l@I|@t@tAg@", "qpUaa@F`BJ~B~AEh@bAzAgB", "ve@uoItCg@zB@g@kBf@iB", "lgB}sAyEEk@o@_ACmAp@}@?aA_@i@v@vAl@tACtAi@hAl@b@@n@ZtDC", "ctD~sDeAz@|@~A`@`AnB^b@~@fARtCyCiB_CkBmA}Ag@wA|@", "du@{kD?L@d@@nHnSIE~NxDPp@dBe@~GnW?h@`A", "fu@gjDoVdN??", "`kAkzAI|Be@pBkAv@OlAF|@", "rtAumABbATTQ`A^Xj@?r@`@|@CvA`B", "|fAwlAIfA_@?s@Ya@Dw@r@sANw@k@_AYo@[g@Bk@j@Wv@qArAf@p@F`Ai@SYVJz@}@v@??", "nfAmi@o@_AIy@yAkB}A}A", "vs@ao@Hx@S`Bh@vAy@v@_AJsArAEnARVLdD", "ss@}eFf@fB_@|Dn@bDzBnBQvCcDtBAn@{BpAsAdJ??", "yfAcnEJxC`Bx@z@~@hCjAUrAPrA`Bl@", "g|CidEfA~A_@tAr@zB{@~C?fU?~U??", "uYwvB?lMlBdCNxBpD^nGPhAdA`CF??", "iAi|AL`BYxAoB`CE`BgFj@DhC??", "zPe^IoAtAkDs@aFsAgDt@{G", "sEad@j@eAt@}BNcBk@sDp@iAP{C?qCrAgBM}@", "sDwcAXhB}@x@eAdAEbBg@f@FjMq@hC", "mLsiAcAy@gAAwCrB??", "qU{gAMqDy@qA[qBs@k@uEWiEjAiAhAeBB}Ao@qFdBeBCuBuAuBDy@[kBJyCx@{CoBo@F", "meFohCxW?fW?bX?", "y{A{mCq@tHiAr@C~@qAbAh@tAlAtKHbG~F|DtAdGsAhA@`CaCBR|A??", "_tCkyBIxWlDMxArCt@xBi@n@`Az@WrAr@pARhAeAKi@lAArBiAz@Bn@", "o~Akm@bBhEn@b@NzCSrANz@}AfBQfAiAdByA`AIxASx@??", "oeAcMAnFbHAbAJ", "wpAeMNvAw@fBuCQq@f@vAfF_BtBUzCXdC|@|AnDGhB_BNvAfCVbAr@kAbCxClB", "acBeMiByDuBiBgC`@_CJ", "{mCsdAWtAqBzBApA`@pAM~@eAv@??", "ubFcyAgFh@_AuCwBxAuBm@o@h@iC@mDnAs@dAwA~@qArBcA`A??", "ulGsfAhAhB??", "{wDjGo@RwB}@??", "c}D`FoApBJtBx@V", "mtChcAU|@V~Ac@|A\\jAQbA`LAFzReCbDcCzB", "cpCnlBaDk@aCHoAl@?N\\J", "mgE`fDf@xAtBTtBmB@cAu@kAQy@y@MeBb@", "{|CzmBmA~Cg@`@}@rBcFzEsATAdAy@~ByC\\_CxA??", "e|D|_BMhAeDC}Ah@i@p@_BLgB~@?|Ff@hCFtC_@z@TrB\\Rr@nCrE`F", "elEbfDvCA", "lw@wdGgAq@qA]q@`BuB?a@YsBFw@bBzAt@@zC`@\\F|AtANoAvBt@bCcAx@Zv@hAhAQ`A", "uQmhGfFX`F{AfAj@nJyAnAmA", "_}@svI~B\\tCY", "ue@ctH}Ar@_Hb@dBhCVlC??", "gwA_oIm@dBv@t@iAfAo@hBLbAqA~B??", "}z@ahHGb@\\p@yAb@eBD", "g`AadHyBZUe@eEc@m@dA}Gr@", "{yBesIuFVoJCeBTo@|@IvAu@jA?nAvBf@}@|ACvAcBlDTx@`BTtDdDs@xAj@K|DkAnCZ|AStBh@dBeApAXJKzAaBrCKR}@fCU\\p@jBg@Kw@tCO|AaA", "}vCehJiDc@wAVkDhAeD@??", "{mDwrJ]b@lCrB{@xDtA~@", "coDa~IqEp@[p@iBWaEn@S|Ah@t@{B`CqAd@Jb@gC`@w@t@lAj@~CGd@Rm@`Aq@~B??", "ej@gmIc@bAp@tDp@jAvB?a@pE", "oe@o|HVdC", "wd@ixHg@l@HvA??", "}cC}wIqE`@wA^Tv@Op@", "sbCe}IcF}@oILcES[h@iBJ_E~A", "ytBktHx@?^b@l@HLl@d@FBRbARxACZj@", "_iBwnHNXSdA", "aiCsmHmBt@Mt@xBh@|AfCxBdC~Cd@zBGxCr@hA\\dDe@tCuA~@Wd@cA`@A", "irBohGUa@pDkAhAsAjAk@zAiAj@}@`B}Ai@qAgAl@i@i@}ACkD^iCA{Aj@", "_lCyqHv@r@d@pAj@RtE{@`AJl@l@|AXTM`B^lADNf@fDVhAUdBq@", "ofBsaH|Cr@RpAdARAv@lACbA_@d@^hCE", "keDklH{@R}@x@_ArAsBvBEvATtAc@xA", "oqDepGtBSpCiAhFn@bBp@dHIxC_@lANv@qA??", "slCmsGp@j@QhAaBtAlA|@^~@SV^ZB?", "}lCgjHuAk@{BT_C@}An@cA]sCSq@m@sA?", "ueEsdIiAFq@m@}@HmES_CpBp@f@O|@_DHgAvABd@}FdAwC]{BzAuBAeH`AAx@pAhBm@lB^`A`ELdBv@FxA", "_nDqeGjDYjE|@@bBtDRlCeA~Ct@rCELcCbB_A", "mnCkaGd@F^`@jBClAj@`CP", "gbDmdG_Bt@|@zBl@V", "kbCg~FBr@~@ZJ`A|A`B", "ubGsbGuEG_E`B", "wxFonGWUgD`@eH^qG~Aa@d@yB_@yDh@}@pA{Bl@p@ZaBjBZVjBKrCy@p@^", "uqDsnLZjCqHbCxDvCiF`FfCjDsDtCnA`CgHfCjAdBxDrBjL~F", "g|EwcECjAbB~H", "mqFsoEqArF??", "yjHkzDdCOpC~D??", "qnHazDnBgB@kB|@@_@qCfBwCrFmBhC}Dm@{CcBcALuBbC{@`CmF", "_pIogFoDe@mCqBeCBwAc@mCP}EdB}CTeFnDsCFQfD", "}jIagB`AkCzCiI??", "kjGeeBwA_ARsAs@aBqAr@u@QgFCc@RaERkAIq@`A}Aa@mCqE{DyA_QkA", "a`C}nLiG`BwHfCErHaAlA", "smHmqDlCBp@}ApDS", "e`I}xCv@Lz@e@", "m}I{aDe@dA", "o_JwzCdB?P`Cc@ZxAf@?pAz@pABnA??", "{qH_aHdB_@SgB|BcCrCBhDeCqBwCx@i@_DyEmErBWsC}KwEwHEwLhCmFpAsEsA{HC_GdBy@y@yGFq@}AbIiC_EaBd@u@_Es@nCiC{AcAkVcAaBq@sNiAsDsAgJj@}@nEoEq@aGbANlB}DKuN{DfA|@}FzC_MzNiBiBsGrB}Gs@oBb@_BrBkCd@sAtAaG[iBxB", "ozLegG{@RfD`CsCjAmCq@mFfB`GnCvCQpABZw@i@{AjGl@~@~B|AnBfDIr@vAsCn@i@rCnBhE??", "w~KohFz@E|Au@^dAfDf@f@~CpBz@|C\\h@zAtCXjEkA", "}fLegF}@XoC_AcAd@_A{AwBB]]UoAuAeAkBl@T|@{@FPfDmA`AeAi@yAS{ByAiCNmE?", "stNugGZl@zHjBdAlA`GVhA~BrEYhCd@~D~A[l@v@l@", "okMmuFq@vDaASwBl@DlA]pB", "ipMwkEaD`B??", "i_RsoDMjAdAb@OzBlCc@bGhCGpBnBfDH~AvAdDzCm@FnEl@bAUrAbBn@", "wePgmDhFQ`Fm@`DwAzCg@`A_BnB[hEcC~C{@rAn@", "ajPsiDeCsCkBs@mCn@iBBwAt@", "i`Qe`CLaDeA^CoC", "i_RsoDsBOcAtBuAn@ExCFbD|DfDVjFsE_@o@vD}Bd@x@dDsCjAwAb@qCy@EpA??", "wpRs~BuA|@KvBeCHn@pECrDqEwB{@b@uBEg@eAwCLwC`DKdEaDlDHhD~@xA??zD]`Gd@~BfDm@nF", "kwR_eCQn@iBD\\eFgB[", "c~SwwAm@bCVnFnIxCwAxBpELlDnA", "q}RkkCkBq@}C@cEWiDiB_BhAwDd@^pB}ApAiEr@", "k}R{e@`ApAbCVLeBbDwA`@b@", "w_V{XjDa@dF?dAbFlAdAdBtG`Dh@|Dw@~APrBdB~BO`Ch@fCqB`@eC", "mcPcsHsEa@{JkDoH}AmDz@qEBeC|AeEDaHp@aEiCnAuBmEoE_FrAuDTkFr@e@tC{GrA{De@}FYgEZcE~AyBdBwDA{F^wDq@gG_@cHmCwBTiB`AmFO", "ugWqxFaD_C{EkBiCmC}A~@mDD^gBuHuAmAqBaCtB", "eaXipFZn@tALlCFlAzAvAGLP", "alWpv@Sf@Cz@", "gpZfOCjSAjS", "miAn^qAuA{@a@kAbA", "yuBkwGgA?p@vA_BjA\\|Al@H", "snHidGtBnA`@r@xAMfCyBx@E", "ugGugFdBzBlBp@QpChApFzLnE??", "{~E_oEt@B??", "qkEszEe@Hu@Oe@@OJCRIG]Be@MSD", "cwB_oGs@`@]ZaARkAh@NP", "axGy`Gi@r@kAb@f@p@iBbAv@~@sAt@yA`@EhC??", "v~VgqHwP?qQ?cE?aR?mQ?wQ?wQ?gT?kT?}K??kAcAAc@lB}@`@kCJkE^aE|@aDYuFr@aAAqDw@{DfAcElAaD`AyC~@Sr@o@RJRs@Dg@SIl@g@^u@?]XV`@oE|Ai@tDg@lDx@tB|AlBj@dABRU\\cA\\q@?gFiBmE_@eGaBCSP}@^g@yA_@cE?wD?_AmAWOsEoCyAc@oHAoJ?Uq@_AIsA]eA{A}@yCwCwCcAt@eCa@wAv@?pGaCnB", "aoFooBdBpBpC`@~@z@RdCtAdHUnA??", "uiH_q@tPvQbGFpDlC~BBt@|@", "sdGoWhC?nAcAvDrAx@rAdCOj@Wl@D~@AzFiDjC?bAaA", "_tFf\\|GgELsBtUwK`@U", "}cA{nJwAqBeDiCaAiF~BeBJiGaC{DeEBeAoAfAcAuHwGgE}EcCmC_E?s@oByJ^]cC{BG??", "_{Fn_A~CrBxElAvBCfAz@hCBt@XnFw@tCN", "wkEtx@}AxAs@hD`@t@h@`Dg@dD~@bAz@xDgBr@??", "_wE~fAv@vCw@bGeAAgA~@sAnCO`GtAh@|@hC`C{BLkCi@}AJoAnAq@t@PrB_B", "u_E}TJhFoAZ~@dAjAt@jAfBh@zAJ`Dl@jA@tC", "m}D`NKnAi@j@A`An@h@lAfBhAfApAH", "s}BqjGo@M[cAa@I]Zc@JY^a@He@b@]?Vn@VVGL", "d_MyoBCu@r@{@q@a@OkAPkB", "|qLzlBt@dBdBr@", "gyEkwD`CwI", "g~EmkE`@|@", "{~E_oEq@kBkBkA^mAxAI", "c~EokE[]BqA??", "gtD_{@gBe@Sy@kAi@gDrBeBScBoCmBmBPwBn@y@wBIMm@}ALVrCWnCeBlAWdABbB[B", "itC{t@aC{@q@qDw@{AoC[a@t@gBtBu@NgAa@oCF", "qsEqYzBzAjC?`Dl@|Bk@rAt@??", "}lD_{@[f@gE?Eg@", "k_Fy[hHCnAjA", "{~E{\\?oBfBa@", "csEp{@f@u@bEe@", "_wE~fAv@oGbA}A", "pLyzEkA~BKxBcArEu@h@d@lA", "dGshEdG`@xAhArBNFrChFnAjAbBbDt@fE\\`IrC?jF", "wtMagFsCzA??", "qkNmpEoAfB", "oeNy|EuEhFR`D", "c|PqlD_DYuDsCgF_CeDp@oCsA}AzBbArAwE\\", "ddJid@^rDvBr@Il@b@fBwApC", "fpI_c@fBjDOhCmAtB`@tA", "~fJyS_A?YnByBlD", "rqI}RPzAp@rA", "kjGicAj@fAiAlBiA~AkAfAmSjFgD?", "sdGoWnDbFAvUwBbD", "oeNy|ElBvA??", "_pEi~Gs@q@mCh@_AFYf@]D", "kuMuhEhDrBAlC`EfE|BjEnEpEfFO|EpEcCxAUxCoBbBg@jDvL?bCdC", "pzJo_@??Yv@hAjA~EjAlC\\x@n@~Cq@rCYd@PyAr@FdC[|BiDPIh@lCv@VtApA^rCl@f@|@zCLlBiB", "}vGewF??i@E{@t@wA??\\oArB", "uaHiqFhAD", "axGy`GtG^", "koGy_Ga@dAP`BsCn@mAz@??", "}vGewFfCv@}@dFd@|@kB~C", "yvGigF??~A`@dAs@fFYtA^??", "ugGugFbF^jBCdFhAbD@hBe@zEv@`Ag@HnBt@j@t@j@", "mqFsoEfKtE|EoABA", "_tF_hEf@\\nKbBgEfE`A`@`@bAvCXn@fAtA|@|E_@", "abH{tDrJOrPqKhHkCnFu@", "_dIwuBwQgEeCoKzAmC", "axI}lCf@h@xQcBjAiEFo@", "q}Jy}EpAxFt@nCuA\\rAlB_A~CO|BwC`@O~BtDtD", "m{JmyD??cBhBoAvB_EvAEnD}A^QzA`HfBhAfF", "}fLegFtCi@nB???", "w~KohFEyBhGuApEaB`C}AdFiC`BmE`Ae@vEHlAi@R}ClGiBfDrBjDbAa@dB`F@", "ssM{hF??c@x@??", "wtMagFrBTdBb@dFVtEh@tBvAo@rAUbB`BrAGjAv@fA|DEmAbC|Bp@tAxBKvBlAv@hAQxCXTv@rC?nBnBDhDbGrAjCQf@j@vBYfE\\nIeB", "okMmuFzJ\\tF_AxELSqByE^gA{@", "_aPsrHvCdCdDPHhEnBxAjKaAnCdJdBj@jKnAsDzIhCr@OpB??", "stNugGzB]bBgAfHSjIEfAT|GsAnBh@^tBhIeA`C\\l@tA", "ozLegG??pBd@fGjCvAlChA@t@_B~FEf@cD`B?OiEnFqCtINjF\\|DuDbDiAtHoCd@Q`OtBG`V??", "y|IeaGdBHjC{CfCw@bFf@vAbA", "a~Mu~EmFz@", "}yNs{D|BxAlAzDaEhA{D`BcGpBsGXqBbByCRqFl@eDAUoAX_COuA", "ajPsiDEf@sDjA}B_@iDLaDEMyBnA_A", "wePgmD??yBi@??O|C??", "ebQwhCfB}Hv@@^|BlBeB}@qByAK{AiDrBa@xDB|D[PkC|AG~CwAdAfCoChBzBhAl@hA{Bt@`@vBeAtC]bD", "kwR_eChD`Ch@hA??", "wpRs~BrBl@rBvAlCFxAvErAb@_BnD}BpCqAbCfAlDdAd@o@bBeC|CUnB@|AmAtDlBxD`BlE", "q}RkkC??sBzCyAtDwF@kAlD~Bt@v@dAmFvBgDjF}BpDuChCq@lCb@fE??", "c~SwwAnDiAzAhCbDmA", "ooX_hG[b@", "qiDefJ_Bl@Q~A_AtB??", "coDa~IvElAxB^", "ueEsdIjDJ|@j@JbBnAStDHr@m@hA`@jA[|CC|Eo@hEOzCBjBt@~AF", "qdDszI??SxAbD~@l@pBxEhA`E?", "a`C}nLuBs@_FhBcGIwEn@}DwAaBsCuHaAaGlAtAlC??", "uqDsnLaDSsIoA", "keDklH??o@]cCSsC|@qAFyAt@LbAiA^[rAeAr@LZc@Tr@LtBER[h@NMb@t@~@`@bAr@T", "moDi{G??yAd@}A_@yA`@", "slCmsGd@c@o@a@p@W|@j@tBy@NqAxBo@T}@jBoA", "kbCg~F??pAq@\\uAYcA", "{eCagG??l@FtB^Ff@XA", "u_CsdG??LgAn@Sh@u@", "m|BeiG??t@PJe@vA`BM~@", "wjCogGvABbAH", "s}BqjG??d@j@", "cwB_oGd@P~@l@\\lB", "yuBkwGkAkA~@w@n@mA", "{|Am~HxATr@Wp@d@nCf@hAp@pCh@c@z@SrAeBn@qBtA??", "_tAopHfAzAfAX]`CR`@|@g@~AElCb@pDIZt@bBw@|@H??", "}z@ahHtE{@f@j@hDA", "_iBwnHzAe@|AJzC}@dANnBnArC_A", "ciBwkHNpAnB?e@h@`A`C??", "gdBycHd@`@lDBdBl@bDO", "iuAuaHT`Bo@tA", "g`AadHNpAvA`@rCYh@nA~AD`@]nBbA`BFtAi@", "um@shHv@`@xAQEp@pCnBBzA_B_@cAvA", "wi@m~G??Fv@{@jAdAz@s@zCkBVTvA", "wd@ixH??r@FTnB??", "mb@qtHlD{AdBNjC}A|AoAzAC\\eA", "oe@o|H??lBo@~BwAvDh@rCO", "v]a{CpH@_B~Y_B|Ya@Xj@jC`X@\\l@lAMnBf@jCw@~@B^tBbAb@??", "`kAkzAbCgCxBsCbCs@~A{@nB@~Aj@bBQbA~@", "gz@m|DaApDIzAb@bDOxAXlBQ|BnArAuBnCGtAeAnB}Ac@}CzAwA|B??", "_jAuqClTzJ`QhKxGvA", "uYwvB??|ER@}B|Aa@zBw@n@}A`TsL`TsL", "y{A{mClChAnBmBzHuA", "g{CohC?nKdF?@rA", "_tCkyB|W_K|W}JhElB", "{mCsdA|B`@dBnAnCxEzD|A`EKv@PSdAfBdAtAlAxFjAp@k@`@Cb@p@dDN", "o~Akm@??_@u@~@iCZsAvAa@tBsBk@}A{ARw@MoB@lBuDGeCLcClA_C", "syAkoAx@JD~@", "swA_mAoAlATd@H`AhDxCr@~BZfBh@j@h@jChBpA^dBj@nAPrAhCbAnBsAjABvBtBx@@|A~Dr@lC", "|fAwlA??\\HjBONVj@BnCq@~AA", "dq@y~@f@NNbAm@pAq@~ChAVRZOf@JtA^?", "vs@ao@??v@Ch@nAv@?d@k@KoArAyBr@Th@B", "|~@qs@??v@JCiA^s@Ey@j@sAv@gA~C?l@d@v@B`@j@Tv@jBvA", "iAi|A~B@p@g@lB\\xDpAd@|@zCxAXr@rAf@`BYt@n@\\hC|CdDC`At@tAMrB??", "v`@y_ArA\\l@V^sAv@Tb@Cb@x@xCAv@]XP", "mLsiAh@z@`BPh@vAbAT??", "sDwcAnDC", "tPg{@fCs@|AFdAp@xAi@`@aAxAk@", "C{cA??zAO~@^vAMzIHBnBYvC??", "qU{gAF`Am@vBf@nAUt@`BzB|@z@d@|BE~BJ`I", "acBeMLjB|Cm@`Du@zFG??", "wpAeMXItBXxB[|AL??", "oeAcMdIC", "ysCeu@wCvAkBnAA`AgCfBqAtAs@vBsCnA_@~@??", "ajDu_@`AR~BCtCUhAP\\n@~@DnAi@|EbBzASZNx@vBtCe@pCS~BiAbDcAjB~@lAdBPjC", "ubFcyA^jDpAbEvBbBtAvCRpA|Av@z@pE??", "gsE{z@ArDZz@jBDbApB{BLeB~Aa@nA{An@uBvE", "ugGkmAuAN{@o@", "kjGicAl@c@n@NlBCB}@Nu@cA}AeAwA", "{rE|D??@sEy@qAaBcCiAqCvAcFVeB|AiC", "u_E}TnDcCl@uAnBh@zAMt@`@xAWxBcD", "irB{T??JvBz@hBd@|BXnDKpB`@dABfAV~@`C`BzAdBvA`EGdDr@~@rB~AtB|BhAc@Lw@jBAbAjAr@S", "gpAz\\??hAh@^r@DtAr@T", "{wDjGx@v@FvBXLRlB", "ktDvPs@xAKpF", "kvDb[c@vDRfBg@rBsBnBkBzF", "c_Ebs@lASlG`@t@Vv@|Bk@xA`@jFXfEu@b@kClAw@c@OvExCApAmBfAuAxC[l@gBxB|@~C[`AyA~BQ|ABH}@dAC", "mtChcAxAKzB\\vAEn@PImF`AiANyB]wBf@mAB}BrF@QgAdB?Hb@zBFp@rB\\p@nB[`AZbCNjAgBl@aAx@wBn@sClQCfAVv@ArAX", "m}D`N??hBK|@pBxBO", "c}D`FeAW{EBuKO", "wkEtx@pB{@|Ba@nAa@rAq@", "qnEhvA|QdDQlC", "e|D|_B??tCXpBnAVdAfANlDbDnB`C`AB`AU~EUb@O", "cpCnlBnJpAbN[jC_BhXF\\LvByA`CEtB`@`Bd@", "yzCvmBpA`@z@?~BlAjAqArHdAtCDDfUbEF?fQ??", "}vD`iCxGrCrDrC`AdCz@jAlBN`@|AT~@|Bl@bDI~Aw@rAW`Bl@n@~A|Az@bBxAnCRj@eAQyBtB}Dt@]", "}aE`jC??hBSbAV~Aa@pAA", "mgE`fD??NwA\\yA", "_fEn`D??PgAc@}Er@mC~AyG", "blPinB??@]WGc@VgAyBe@A", "lmPcyAg@s@Ne@Og@}Aw@yAkA", "~`LyFd@Vd@uBv@_A`AdAdKCCzBsBRDlAf@UpB`@?pCwAfA_@pBBvAxAbP??", "xsLzYbBiBz@E_CiEvC}AvBNfAa@nBr@rCWtBqEzAs@~@}AdC}Ar@P??", "`vM\\tAm@`BcAx@^fD[p@uAd@BfEqB", "lbLbmC??nCXlAsGjB_F_A_EhBuAXoC`BgC", "pjJb}B@}@zDeBvDC|Ix@~AnDBjBnAnF", "ltIz_D??cBe@cBpBB~CfDlBdCpA`F`EjGpG", "dgJz{D??aCUiExCiAEmE~B{CnBsBfCvA|Aw@pB", "|qLzlB}BwEtAgDm@cAb@iAmAcBCiDIkCi@cAjDaI", "grAwsA??gCzEc@C??", "ue@ctHx@Bl@Q", "k_HcqFfCYdB}A^iA", "uaHiqFkFsCiAM{@x@dAbB{BfBq@I", "rtAumA??pJGt@T`AEhB`@", "k{BxyC@`VpDdBjBNzBe@xAO`@sAnAw@~AbB", "xfK`jC??^k@bFGlA`DrBoCdGq@fDtD", "pqLlcA??sCPgBEk@{@oDoAgBkAeGa@RtCWlANdCwEpD_F`@oAhAeCf@sAx@}BAsBz@GpBg@z@AtAx@@kAhF_KF\\rBUlAmBv@m@zBb@|Ct@vASpB??~@h@", "phJx{B~@h@", "kyMedFy@xC{AT", "anNemE??DdB??", "{mN_jEnC[QdA", "}iNuhESrA", "qjNafEQ`A[P", "_lNmcEaB~@", "aoNmaEeAl@QF", "yqNw_EyAl@", "stNi~DiDtA??", "kdFa|GVpAKp@", "_aPsrHmAOs@jCgDhB}GjAiC~CjAhFgAtAkF`@mGZqF|B{BTyAvDuBtB{EC}Kl@iG[cE\\gHvBqF?yA|@gFiBaIeAkHGiFeAoCkBkCaA^aA~@mAgB_CqBPkEf@gEiBqHmAqCcCkCw@aH[}CVUgArDkC`D_AvChAdE]pBVp@qAkCeEaBwC??", "gxUyvH??oFjAyG}B@wAsDsEoB_A@oBlBm@cDcByFc@gGEkHz@oDhAyBhEkAtAeAxBiAbE{I~@kFlCqAzDoH?kDmAkI{@hBrDlAhAbAxEdCbErFc@hDdAs@jD\\jFdBDAbB", "e}E{nEP`@`A?", "stMgwErD]`BtAeAnDeAfC", "abNazErAnA|E\\zBS"], "pointille": ["e}EmiE?xB\\x@", "e}EoiE?@hA[h@bCs@Vr@XFt@}A[?@", "|pA}kDwZ?"]};
+  /* GEO-FIN */
+
+  /* DONNEES-DEBUT — produit par 06_scripts/03_injecte_globe.py depuis 02_donnees/globe_donnees.json */
+  var D = {"arrivee": {"code": "LTAI", "n": "Antalya", "t": "Antalya (Turquie), ville hôte de la COP31", "lat": 36.8987, "lon": 30.8005}, "origines": [{"code": "LTBA", "n": "Istanbul-Atatürk", "t": "Istanbul (aéroport Atatürk), Turquie", "lat": 40.9719, "lon": 28.8237, "v": 27, "co2": 72.8, "co2_manq": 0}, {"code": "LTAC", "n": "Ankara", "t": "Ankara (Esenboğa), Turquie", "lat": 40.1281, "lon": 32.9951, "v": 12, "co2": 29.9, "co2_manq": 0}, {"code": "LTFM", "n": "Istanbul", "t": "Istanbul (aéroport principal), Turquie", "lat": 41.2749, "lon": 28.7321, "v": 5, "co2": 16.1, "co2_manq": 0}, {"code": "EGLF", "n": "Farnborough", "t": "Farnborough (Angleterre), Royaume-Uni", "lat": 51.2758, "lon": -0.7763, "v": 3, "co2": 45.6, "co2_manq": 0}, {"code": "LFPB", "n": "Paris", "t": "Paris-Le Bourget, France", "lat": 48.9623, "lon": 2.4365, "v": 3, "co2": 35.2, "co2_manq": 0}, {"code": "LTFJ", "n": "Istanbul-Sabiha-Gökçen", "t": "Istanbul (Sabiha-Gökçen), Turquie", "lat": 40.8986, "lon": 29.3092, "v": 3, "co2": 7.0, "co2_manq": 0}, {"code": "LTBS", "n": "Dalaman", "t": "Dalaman, Turquie", "lat": 36.7131, "lon": 28.7925, "v": 3, "co2": 4.7, "co2_manq": 0}, {"code": "SVMI", "n": "Caracas", "t": "Caracas (Maiquetía), Venezuela", "lat": 10.6022, "lon": -66.9912, "v": 2, "co2": 134.8, "co2_manq": 0}, {"code": "LEMD", "n": "Madrid", "t": "Madrid, Espagne", "lat": 40.4934, "lon": -3.5722, "v": 2, "co2": 38.8, "co2_manq": 0}, {"code": "OOMS", "n": "Mascate", "t": "Mascate, Oman", "lat": 23.6002, "lon": 58.2853, "v": 2, "co2": 33.6, "co2_manq": 0}, {"code": "OTBD", "n": "Doha", "t": "Doha, Qatar", "lat": 25.2594, "lon": 51.5655, "v": 2, "co2": 31.2, "co2_manq": 0}, {"code": "EKCH", "n": "Copenhague", "t": "Copenhague, Danemark", "lat": 55.6179, "lon": 12.656, "v": 2, "co2": 24.9, "co2_manq": 0}, {"code": "UBBB", "n": "Bakou", "t": "Bakou, Azerbaïdjan", "lat": 40.4728, "lon": 50.0509, "v": 2, "co2": 22.2, "co2_manq": 0}, {"code": "LJLJ", "n": "Ljubljana", "t": "Ljubljana, Slovénie", "lat": 46.2237, "lon": 14.4576, "v": 2, "co2": 14.3, "co2_manq": 0}, {"code": "FBSK", "n": "Gaborone", "t": "Gaborone, Botswana", "lat": -24.5552, "lon": 25.9182, "v": 1, "co2": 46.5, "co2_manq": 0}, {"code": "FVFA", "n": "Victoria Falls", "t": "Victoria Falls, Zimbabwe", "lat": -18.0974, "lon": 25.8369, "v": 1, "co2": 41.7, "co2_manq": 0}, {"code": "DNMM", "n": "Lagos", "t": "Lagos, Nigeria", "lat": 6.5774, "lon": 3.3212, "v": 1, "co2": 29.9, "co2_manq": 0}, {"code": "HCMM", "n": "Mogadiscio", "t": "Mogadiscio, Somalie", "lat": 2.0144, "lon": 45.3047, "v": 1, "co2": 25.1, "co2_manq": 0}, {"code": "EGGW", "n": "Luton", "t": "Londres-Luton, Royaume-Uni", "lat": 51.8747, "lon": -0.3683, "v": 1, "co2": 20.3, "co2_manq": 0}, {"code": "OMDW", "n": "Dubaï", "t": "Dubaï (Al-Maktoum), Emirats arabes unis", "lat": 24.8962, "lon": 55.1624, "v": 1, "co2": 18.5, "co2_manq": 0}, {"code": "ESSB", "n": "Stockholm", "t": "Stockholm (Bromma), Suède", "lat": 59.3544, "lon": 17.9417, "v": 1, "co2": 18.4, "co2_manq": 0}, {"code": "EHAM", "n": "Amsterdam", "t": "Amsterdam, Pays-Bas", "lat": 52.3086, "lon": 4.7639, "v": 1, "co2": 18.4, "co2_manq": 0}, {"code": "GMME", "n": "Rabat", "t": "Rabat, Maroc", "lat": 34.0515, "lon": -6.7515, "v": 1, "co2": 17.1, "co2_manq": 0}, {"code": "UUWW", "n": "Moscou", "t": "Moscou (Vnoukovo), Russie", "lat": 55.5915, "lon": 37.2615, "v": 1, "co2": 14.9, "co2_manq": 0}, {"code": "OERK", "n": "Riyad", "t": "Riyad, Arabie saoudite", "lat": 24.9576, "lon": 46.6988, "v": 1, "co2": 14.0, "co2_manq": 0}, {"code": "LIRP", "n": "Pise", "t": "Pise, Italie", "lat": 43.6839, "lon": 10.3927, "v": 1, "co2": 13.3, "co2_manq": 0}, {"code": "EGLC", "n": "Londres", "t": "Londres (London City), Royaume-Uni", "lat": 51.5053, "lon": 0.0553, "v": 1, "co2": 12.6, "co2_manq": 0}, {"code": "EGNV", "n": "Teesside", "t": "Teesside (Angleterre), Royaume-Uni", "lat": 54.5092, "lon": -1.4294, "v": 1, "co2": 11.7, "co2_manq": 0}, {"code": "LEAL", "n": "Alicante", "t": "Alicante, Espagne", "lat": 38.2822, "lon": -0.5582, "v": 1, "co2": 10.8, "co2_manq": 0}, {"code": "LMML", "n": "Malte", "t": "La Valette, Malte", "lat": 35.8459, "lon": 14.4915, "v": 1, "co2": 10.4, "co2_manq": 0}, {"code": "LSZH", "n": "Zurich", "t": "Zurich, Suisse", "lat": 47.4581, "lon": 8.5481, "v": 1, "co2": 10.0, "co2_manq": 0}, {"code": "EDAQ", "n": "Halle", "t": "Halle-Oppin, Allemagne", "lat": 51.5522, "lon": 12.0539, "v": 1, "co2": 9.2, "co2_manq": 0}, {"code": "UMMS", "n": "Minsk", "t": "Minsk, Biélorussie", "lat": 53.8881, "lon": 28.04, "v": 1, "co2": 8.8, "co2_manq": 0}, {"code": "OEGS", "n": "Qassim", "t": "Qassim, Arabie saoudite", "lat": 26.3028, "lon": 43.7744, "v": 1, "co2": 8.8, "co2_manq": 0}, {"code": "OEJN", "n": "Djeddah", "t": "Djeddah, Arabie saoudite", "lat": 21.6802, "lon": 39.1574, "v": 1, "co2": 8.7, "co2_manq": 0}, {"code": "EFHK", "n": "Helsinki", "t": "Helsinki, Finlande", "lat": 60.3184, "lon": 24.9633, "v": 1, "co2": 8.3, "co2_manq": 0}, {"code": "ENGM", "n": "Oslo", "t": "Oslo, Norvège", "lat": 60.1939, "lon": 11.1004, "v": 1, "co2": 8.1, "co2_manq": 0}, {"code": "ELLX", "n": "Luxembourg", "t": "Luxembourg", "lat": 49.6268, "lon": 6.2121, "v": 1, "co2": 7.4, "co2_manq": 0}, {"code": "LOWS", "n": "Salzbourg", "t": "Salzbourg, Autriche", "lat": 47.7933, "lon": 13.0043, "v": 1, "co2": 7.2, "co2_manq": 0}, {"code": "EDMO", "n": "Munich", "t": "Oberpfaffenhofen (près de Munich), Allemagne", "lat": 48.0814, "lon": 11.2831, "v": 1, "co2": 6.9, "co2_manq": 0}, {"code": "LBWN", "n": "Varna", "t": "Varna, Bulgarie", "lat": 43.2321, "lon": 27.8251, "v": 1, "co2": 4.1, "co2_manq": 0}, {"code": "HECA", "n": "Le Caire", "t": "Le Caire, Egypte", "lat": 30.1115, "lon": 31.3967, "v": 1, "co2": 3.8, "co2_manq": 0}, {"code": "LYPG", "n": "Podgorica", "t": "Podgorica, Monténégro", "lat": 42.3594, "lon": 19.2519, "v": 1, "co2": 3.6, "co2_manq": 0}, {"code": "HESH", "n": "Charm el-Cheikh", "t": "Charm el-Cheikh, Egypte", "lat": 27.9773, "lon": 34.3947, "v": 1, "co2": 3.3, "co2_manq": 0}, {"code": "LGIR", "n": "Héraklion", "t": "Héraklion (Crète), Grèce", "lat": 35.3397, "lon": 25.1803, "v": 1, "co2": 3.0, "co2_manq": 0}, {"code": "LTAJ", "n": "Gaziantep", "t": "Gaziantep, Turquie", "lat": 36.9472, "lon": 37.4787, "v": 1, "co2": 2.7, "co2_manq": 0}, {"code": "OLBA", "n": "Beyrouth", "t": "Beyrouth, Liban", "lat": 33.8198, "lon": 35.4874, "v": 1, "co2": 2.7, "co2_manq": 0}, {"code": "LBSF", "n": "Sofia", "t": "Sofia, Bulgarie", "lat": 42.6964, "lon": 23.4177, "v": 1, "co2": 2.6, "co2_manq": 0}, {"code": "LTBJ", "n": "Izmir", "t": "Izmir (Adnan-Menderes), Turquie", "lat": 38.2924, "lon": 27.157, "v": 1, "co2": 2.6, "co2_manq": 0}, {"code": "LCEN", "n": "Ercan", "t": "Ercan, Chypre du Nord", "lat": 35.1531, "lon": 33.5074, "v": 1, "co2": 1.8, "co2_manq": 0}, {"code": "LGKO", "n": "Kos", "t": "Kos, Grèce", "lat": 36.7945, "lon": 27.0911, "v": 1, "co2": 1.5, "co2_manq": 0}, {"code": "FMMI", "n": "Antananarivo", "t": "Antananarivo, Madagascar", "lat": -18.7969, "lon": 47.4788, "v": 1, "co2": 0.0, "co2_manq": 1}, {"code": "HAAB", "n": "Addis-Abeba", "t": "Addis-Abeba, Ethiopie", "lat": 8.9779, "lon": 38.7993, "v": 1, "co2": 0.0, "co2_manq": 1}], "total": {"vols": 118, "sans_origine": 9, "co2_t": 950, "co2_site_t": 950, "turquie": 52, "aeroports": 53, "pays": 37}, "vols": [{"o": "LTFJ", "h": "2026-11-07 10:02", "m": "Learjet 45", "co2": 1.6}, {"o": "LTBA", "h": "2026-11-07 12:17", "m": "Dassault Falcon 7X", "co2": 3.0}, {"o": "LTAC", "h": "2026-11-07 15:06", "m": "Hawker Beechcraft 750/850", "co2": 2.1}, {"o": "FVFA", "h": "2026-11-07 21:22", "m": "Bombardier BD-700 Global 6000/6500", "co2": 41.7}, {"o": "ENGM", "h": "2026-11-07 22:07", "m": "Phenom 300", "co2": 8.1}, {"o": "DNMM", "h": "2026-11-08 07:46", "m": "Bombardier BD-700 Global 6000/6500", "co2": 29.9}, {"o": "LTBA", "h": "2026-11-08 08:08", "m": "Citation Mustang", "co2": 0.9}, {"o": "LBSF", "h": "2026-11-08 10:20", "m": "Embraer EMB-505 Phenom 300", "co2": 2.6}, {"o": "LTBA", "h": "2026-11-08 10:42", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "LTBA", "h": "2026-11-08 10:53", "m": "Hawker Beechcraft 750/850", "co2": 2.4}, {"o": "HESH", "h": "2026-11-08 12:52", "m": "Learjet 45", "co2": 3.3}, {"o": "LCEN", "h": "2026-11-08 16:49", "m": "Bombardier CL-600 Challenger", "co2": 1.8}, {"o": "EKCH", "h": "2026-11-08 17:41", "m": "Gulfstream G500", "co2": 14.6}, {"o": "OEGS", "h": "2026-11-08 18:49", "m": "Embraer EMB-135 Legacy", "co2": 8.8}, {"o": "EFHK", "h": "2026-11-08 19:00", "m": "Cessna 525C Citation CJ4", "co2": 8.3}, {"o": "LTBA", "h": "2026-11-08 20:55", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "LTBA", "h": "2026-11-08 21:55", "m": "Dassault Falcon 2000", "co2": 2.3}, {"o": "LTBA", "h": "2026-11-09 08:53", "m": "Hawker Beechcraft 750/850", "co2": 2.4}, {"o": "LTFJ", "h": "2026-11-09 12:57", "m": "Dassault Falcon 7X", "co2": 2.9}, {"o": "EDMO", "h": "2026-11-09 14:55", "m": "Learjet 35A", "co2": 6.9}, {"o": "LTAC", "h": "2026-11-09 16:58", "m": "Hawker 750", "co2": 2.1}, {"o": "HAAB", "h": "2026-11-09 17:06", "m": "Boeing 737-800", "co2": null}, {"o": "LTBA", "h": "2026-11-09 17:40", "m": "Hawker 750", "co2": 2.4}, {"o": "LEMD", "h": "2026-11-09 17:53", "m": "Bombardier BD-700 Global 6000/6500", "co2": 20.6}, {"o": "EGLF", "h": "2026-11-09 18:06", "m": "Bombardier CL-600 Challenger", "co2": 13.5}, {"o": "LTFM", "h": "2026-11-09 18:09", "m": "Legacy 600 / 650", "co2": 3.0}, {"o": "LTBA", "h": "2026-11-09 18:21", "m": "Falcon 8X", "co2": 2.9}, {"o": "LEMD", "h": "2026-11-09 19:03", "m": "Gulfstream 5", "co2": 18.2}, {"o": "LTAC", "h": "2026-11-09 19:41", "m": "Dassault Falcon 7X", "co2": 2.6}, {"o": "LTBA", "h": "2026-11-09 21:03", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "OERK", "h": "2026-11-09 21:31", "m": "Bombardier BD-700 Global 6000/6500", "co2": 14.0}, {"o": "LTBA", "h": "2026-11-09 21:48", "m": "Gulfstream 4", "co2": 4.1}, {"o": "LTAC", "h": "2026-11-09 22:04", "m": "Cessna 700 Citation Longitude", "co2": 2.0}, {"o": "EGLF", "h": "2026-11-09 22:54", "m": "Bombardier BD-100 Challenger 350", "co2": 12.7}, {"o": "LTBJ", "h": "2026-11-10 01:26", "m": "Gulfstream 5", "co2": 2.6}, {"o": "UMMS", "h": "2026-11-10 05:52", "m": "Bombardier CL-600 Challenger", "co2": 8.8}, {"o": "LTBA", "h": "2026-11-10 10:25", "m": "Gulfstream G200 / Galaxy", "co2": 2.4}, {"o": "LTBA", "h": "2026-11-10 11:31", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "LTBA", "h": "2026-11-10 12:11", "m": "Bombardier BD-100 Challenger 350", "co2": 2.4}, {"o": "LTBA", "h": "2026-11-10 12:28", "m": "Gulfstream 4", "co2": 4.1}, {"o": "LTBA", "h": "2026-11-10 12:40", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "ESSB", "h": "2026-11-10 12:54", "m": "Bombardier BD-700 Global 6000/6500", "co2": 18.4}, {"o": "LTFM", "h": "2026-11-10 13:36", "m": "Global 7500", "co2": 4.1}, {"o": "LTAC", "h": "2026-11-10 14:33", "m": "Gulfstream 4", "co2": 3.5}, {"o": "LTBA", "h": "2026-11-10 14:35", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "LBWN", "h": "2026-11-10 14:47", "m": "Embraer EMB-135 Legacy", "co2": 4.1}, {"o": "EHAM", "h": "2026-11-10 15:39", "m": "Bombardier BD-700 Global 6000/6500", "co2": 18.4}, {"o": "LIRP", "h": "2026-11-10 15:53", "m": "Bombardier BD-700 Global 7000/7500", "co2": 13.3}, {"o": "HECA", "h": "2026-11-10 16:31", "m": "Challenger 604 / 605 / 650", "co2": 3.8}, {"o": "LTBA", "h": "2026-11-10 16:59", "m": "Citation Mustang", "co2": 0.9}, {"o": "OOMS", "h": "2026-11-10 17:01", "m": "Gulfstream 5", "co2": 18.3}, {"o": "HCMM", "h": "2026-11-10 17:12", "m": "Gulfstream 5", "co2": 25.1}, {"o": "LTAC", "h": "2026-11-10 17:22", "m": "Bombardier CL-600 Challenger", "co2": 2.2}, {"o": "LYPG", "h": "2026-11-10 17:48", "m": "Learjet 45", "co2": 3.6}, {"o": "LJLJ", "h": "2026-11-10 17:52", "m": "Dassault Falcon 2000", "co2": 7.1}, {"o": "OMDW", "h": "2026-11-10 18:04", "m": "Bombardier BD-700 Global 6000/6500", "co2": 18.5}, {"o": "FBSK", "h": "2026-11-10 19:02", "m": "Bombardier BD-700 Global 6000/6500", "co2": 46.5}, {"o": "OLBA", "h": "2026-11-10 19:12", "m": "Embraer EMB-550 Praetor 600", "co2": 2.7}, {"o": "UBBB", "h": "2026-11-10 19:21", "m": "Gulfstream 5", "co2": 10.7}, {"o": "LTFM", "h": "2026-11-10 19:35", "m": "Bombardier CL-600 Challenger", "co2": 2.7}, {"o": "LTBA", "h": "2026-11-10 19:43", "m": "Bombardier BD-700 Global 5000/5500", "co2": 3.8}, {"o": "EGLF", "h": "2026-11-11 00:11", "m": "Gulfstream G650", "co2": 19.5}, {"o": "LGIR", "h": "2026-11-11 00:12", "m": "Embraer EMB-135 Legacy", "co2": 3.0}, {"o": "GMME", "h": "2026-11-11 00:31", "m": "Embraer EMB-135 Legacy", "co2": 17.1}, {"o": "EKCH", "h": "2026-11-11 01:08", "m": "Dassault Falcon 2000", "co2": 10.3}, {"o": "LFPB", "h": "2026-11-11 01:47", "m": "Bombardier BD-700 Global 7000/7500", "co2": 18.5}, {"o": "LFPB", "h": "2026-11-11 05:20", "m": "Learjet 60", "co2": 9.4}, {"o": "FMMI", "h": "2026-11-11 06:10", "m": "Boeing 737-800", "co2": null}, {"o": "EGGW", "h": "2026-11-11 07:03", "m": "Bombardier BD-700 Global 6000/6500", "co2": 20.3}, {"o": "SVMI", "h": "2026-11-11 07:05", "m": "Bombardier BD-700 Global 6000/6500", "co2": 67.4}, {"o": "SVMI", "h": "2026-11-11 07:08", "m": "Bombardier BD-700 Global 6000/6500", "co2": 67.4}, {"o": "LTBA", "h": "2026-11-11 08:07", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "LTFM", "h": "2026-11-11 08:55", "m": "Cessna 680 Citation Latitude", "co2": 2.2}, {"o": "LTBA", "h": "2026-11-11 10:51", "m": "Bombardier BD-700 Global 5000/5500", "co2": 3.8}, {"o": "LTAC", "h": "2026-11-11 10:59", "m": "Cessna 680 Citation Sovereign", "co2": 2.0}, {"o": "OTBD", "h": "2026-11-11 11:11", "m": "Gulfstream G700", "co2": 15.5}, {"o": "LMML", "h": "2026-11-11 11:18", "m": "Bombardier BD-700 Global 6000/6500", "co2": 10.4}, {"o": "LTBA", "h": "2026-11-11 11:55", "m": "Gulfstream 4", "co2": 4.1}, {"o": "UBBB", "h": "2026-11-11 12:48", "m": "Gulfstream G650", "co2": 11.5}, {"o": "LFPB", "h": "2026-11-11 13:24", "m": "Embraer EMB-505 Phenom 300", "co2": 7.3}, {"o": "LTFM", "h": "2026-11-11 14:11", "m": "Bombardier BD-700 Global 7000/7500", "co2": 4.1}, {"o": "EGLC", "h": "2026-11-11 14:45", "m": "Embraer EMB-550 Praetor 600", "co2": 12.6}, {"o": "LTAC", "h": "2026-11-11 15:20", "m": "Hawker Beechcraft 750/850", "co2": 2.1}, {"o": "LTAC", "h": "2026-11-11 15:45", "m": "Legacy 600 / 650", "co2": 2.4}, {"o": "LTBS", "h": "2026-11-11 17:06", "m": "Gulfstream G650", "co2": 1.7}, {"o": "OTBD", "h": "2026-11-11 22:19", "m": "Gulfstream G650", "co2": 15.7}, {"o": "EGNV", "h": "2026-11-12 13:32", "m": "Cessna 680 Citation Latitude", "co2": 11.7}, {"o": "LTBS", "h": "2026-11-12 13:41", "m": "Bombardier CL-600 Challenger", "co2": 1.2}, {"o": "LOWS", "h": "2026-11-12 13:51", "m": "Citation Latitude", "co2": 7.2}, {"o": "EDAQ", "h": "2026-11-12 13:58", "m": "Cessna 680 Citation Sovereign", "co2": 9.2}, {"o": "LJLJ", "h": "2026-11-12 14:11", "m": "Dassault Falcon 2000", "co2": 7.1}, {"o": "LTFJ", "h": "2026-11-12 14:16", "m": "Bombardier CL-600 Challenger", "co2": 2.4}, {"o": "OEJN", "h": "2026-11-12 14:39", "m": "Bombardier CL-600 Challenger", "co2": 8.7}, {"o": "LEAL", "h": "2026-11-12 14:50", "m": "Cessna 560XL Citation XLS", "co2": 10.8}, {"o": "LTBA", "h": "2026-11-12 16:25", "m": "Cessna 680 Citation Latitude", "co2": 2.0}, {"o": "LTAC", "h": "2026-11-12 16:40", "m": "Gulfstream 4", "co2": 3.5}, {"o": "LTBS", "h": "2026-11-12 17:23", "m": "Bombardier BD-700 Global 6000/6500", "co2": 1.8}, {"o": "LTAC", "h": "2026-11-12 18:10", "m": "Bombardier BD-700 Global 5000/5500", "co2": 3.3}, {"o": "LTAC", "h": "2026-11-12 18:48", "m": "Cessna 700 Citation Longitude", "co2": 2.0}, {"o": "LTBA", "h": "2026-11-12 19:20", "m": "Bombardier BD-700 Global 7000/7500", "co2": 3.9}, {"o": "LTBA", "h": "2026-11-12 21:37", "m": "Dassault Falcon 2000", "co2": 2.3}, {"o": "ELLX", "h": "2026-11-12 22:05", "m": "Learjet 45", "co2": 7.4}, {"o": "OOMS", "h": "2026-11-12 23:01", "m": "Embraer EMB-135 Legacy", "co2": 15.3}, {"o": "UUWW", "h": "2026-11-12 23:18", "m": "Bombardier BD-700 Global 6000/6500", "co2": 14.9}, {"o": "LGKO", "h": "2026-11-13 06:53", "m": "Cessna 680 Citation Latitude", "co2": 1.5}, {"o": "LTAJ", "h": "2026-11-13 11:20", "m": "Dassault Falcon 2000", "co2": 2.7}, {"o": "LTBA", "h": "2026-11-13 11:50", "m": "Bombardier CL-600 Challenger", "co2": 2.5}, {"o": "LTBA", "h": "2026-11-13 11:55", "m": "Bombardier BD-100 Challenger 350", "co2": 2.4}, {"o": "LSZH", "h": "2026-11-13 12:43", "m": "Bombardier CL-600 Challenger", "co2": 10.0}], "arrete": "2026-11-13 09:43", "debut": "2026-11-06", "source": "2026-11-13_1216_polluterjets_landed.json", "arrete_local": "2026-11-13 12:43", "terre_dep": [69, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 93, 94, 95, 96, 115, 118, 119, 120, 125, 126, 133, 155, 156, 162, 163, 166, 167, 191, 192, 195, 202, 203, 204, 205, 210, 211, 213, 215, 231, 232, 233, 234, 235, 236, 237, 239, 240, 252, 253, 262, 271, 273, 274, 276, 284], "terre_hote": [206, 207]};
+  /* DONNEES-FIN */
+
+  /* ================================================================== */
+  /* 1. Réglages                                                        */
+  /* ================================================================== */
+
+  var TEX_DESKTOP = 4096, TEX_MOBILE = 2048, MOBILE_MAX_WIDTH = 700;
+  var LARGEUR_ETROITE = 440;   // en dessous : seuls Antalya, les gros départs et la ligne touchée sont nommés
+
+  var AUTOROTATE = false;      // un seul point d'arrivée : on garde Antalya face au lecteur
+  var SPIN_SECONDS = 140, IDLE_RESUME_MS = 3000;
+  var DIST_START = 3.9, DIST_MIN = 2.1, DIST_MAX = 7.0;
+  var WHEEL_ZOOM = false;
+
+  var OCEAN    = '#a6cef4';
+  var TERRE    = '#fffef1';   // pays sans départ de jet
+  var TERRE_DEP = '#fd634e';
+  var TERRE_HOTE = '#7DE2B4'; // Turquie, pays hôte (D.terre_hote)  // pays d'où est parti au moins un jet (D.terre_dep, calculé par 03_injecte_globe.py)
+  var COTE     = '#000000';
+  var FRONT    = '#b2b2b2';
+  var GRATIC   = '#efefef';   // en petits points serrés
+  var OMBRE    = '#3a3a3a';   // ombre portée des terres
+  var LISERE   = '#fff6c4';   // liseré clair côté nord-ouest
+  var CONTOUR  = '#141414';   // cercle crayonné autour du globe
+
+  var C_INT = [125/255, 45/255, 27/255];   // #7d2d1b : jets venus de l'étranger (même valeur que la légende)
+  var C_TUR = [0/255, 67/255, 82/255];      // #004352 : jets partis de Turquie (même valeur que la légende)
+  var C_HUB = [0.024, 0.247, 0.204];   // #063f34  Antalya et points de départ
+
+  // un trait par jet, tous de la même épaisseur (demi-largeur en px CSS)
+  var LARGEUR = 0.85;
+
+  var VUES = [
+    {t:'Vue d’ensemble',          lon:null, lat:null, d:4.6},   // centrée sur Antalya (coordonnées des données, voir plus bas)
+    {t:'Europe et Moyen-Orient',  lon:22,  lat:40, d:3.1},
+    {t:'Turquie',                 lon:31,  lat:39, d:2.2}
+  ];
+  var VUE_DEFAUT = 0;
+
+  /* ================================================================== */
+  /* 2. Données                                                         */
+  /* ================================================================== */
+
+  var T = D.total;
+  var ARR = D.arrivee; ARR.hub = 1;
+  VUES[0].lon = ARR.lon; VUES[0].lat = ARR.lat;   // affichage initial centré sur Antalya
+  var AP = {}; AP[ARR.code] = ARR;
+  D.origines.forEach(function (o) { o.tur = o.code.slice(0, 2) === 'LT'; AP[o.code] = o; });
+
+  // Un trait par jet, dans l'ordre d'arrivée. Les jets partis du même aéroport sont
+  // écartés en éventail (k-ième sur n), sinon leurs traits se superposeraient.
+  var rang = {};
+  var ROUTES = D.vols.map(function (v) {
+    var o = AP[v.o];
+    rang[v.o] = (rang[v.o] || 0) + 1;
+    return { a:v.o, b:ARR.code, o:o, vol:v, k:rang[v.o] - 1 };
+  });
+  ROUTES.forEach(function (r) {
+    var n = r.o.v, pas = Math.min(0.08, 1.0 / n);
+    r.ecart = (r.k - (n - 1) / 2) * pas;
+  });
+
+  function fr(n) { return String(n).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function jets(v) { return v + (v > 1 ? ' jets privés' : ' jet privé'); }
+  function co2Txt(o) {
+    var t = o.co2 >= 10 ? Math.round(o.co2) : o.co2;
+    var s = fr(t) + ' t de CO2e estimées';
+    if (o.co2_manq) s += ' (estimation manquante pour ' + o.co2_manq + ' vol' + (o.co2_manq > 1 ? 's' : '') + ')';
+    return s;
+  }
+  var DATE = (function () {
+    var m = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    var a = D.arrete_local.split(/[- :]/);
+    return { jour: (+a[2] === 1 ? '1er' : +a[2]) + ' ' + m[+a[1] - 1], an: a[0], h: +a[3] + ' h ' + a[4] };
+  })();
+  function dateTxt(h) {
+    var m = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+    var a = h.split(/[- :]/);
+    return (+a[2] === 1 ? '1er' : +a[2]) + ' ' + m[+a[1] - 1] + ' à ' + (+a[3]) + ' h ' + a[4];
+  }
+  var ALT = 'Globe terrestre : les aéroports de départ des ' + T.vols + ' jets privés arrivés à Antalya pendant la COP31.';
+
+  /* ================================================================== */
+  /* 3. Habillage HTML                                                  */
+  /* ================================================================== */
+
+  var script = document.currentScript;
+  var root = script.previousElementSibling;
+  if (!root) return;
+
+  function svgLigne(col) {   // trait court, même couleur que sur le globe
+    return '<svg width="18" height="12"><line x1="1.5" y1="6" x2="16.5" y2="6" stroke="' + col +
+           '" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  }
+  function svgAplat(col) {   // carré, bordé de noir comme les côtes
+    return '<svg width="12" height="12"><rect x=".6" y=".6" width="10.8" height="10.8" fill="' + col +
+           '" stroke="#000" stroke-width="1.2"/></svg>';
+  }
+
+  root.innerHTML =
+    '<h3 class="hab-titre">Depuis le début de la COP, les jets privés convergent à Antalya</h3>' +
+    '<div class="legende" aria-hidden="true"><div class="leg-cols">' +
+      '<div class="leg-col"><span class="leg-groupe">Les jets</span>' +
+        '<span class="leg-ligne">' + svgLigne('#7d2d1b') + '<span>Venus de l’étranger</span></span>' +
+        '<span class="leg-ligne">' + svgLigne('#004352') + '<span>Venus de Turquie</span></span></div>' +
+      '<div class="leg-col"><span class="leg-groupe">Les pays</span>' +
+        '<span class="leg-ligne">' + svgAplat('#fd634e') + '<span>Pays de départ</span></span>' +
+        '<span class="leg-ligne">' + svgAplat('#7DE2B4') + '<span>Turquie, pays hôte</span></span></div>' +
+    '</div></div>' +
+    '<div class="vt-scene"></div>' +
+    '<div class="vt-views"></div>' +
+    '<footer class="hab-pied">' +
+      '<div class="hab-textes"><span class="hab-source">Source&nbsp;: ' +
+        '<a href="https://cop.polluterjets.com/" target="_blank" rel="noopener">PolluterJets</a></span></div>' +
+      '<img class="hab-logo" src="data:image/png;base64,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" alt="Vert">' +
+    '</footer>';
+
+  // Équivalent texte : lu par les lecteurs d'écran, affiché sous la carte sans WebGL
+  var liste = document.createElement('ul');
+  liste.innerHTML = D.origines.map(function (o) {
+    return '<li>' + o.t + ' — ' + jets(o.v) + ', ' + co2Txt(o) + '.</li>';
+  }).join('');
+  liste.className = 'vt-sr';
+  root.insertBefore(liste, root.querySelector('.hab-pied'));
+
+  var host  = root.querySelector('.vt-scene');
+  var bar   = root.querySelector('.vt-views');
+  var layer = document.createElement('div'); layer.className = 'vt-lyr'; host.appendChild(layer);
+  var tip   = document.createElement('div'); tip.className = 'vt-tip'; layer.appendChild(tip);
+
+  var canvas = document.createElement('canvas');
+  var opts = { alpha: true, premultipliedAlpha: true, antialias: true, depth: true };
+  var gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
+
+  if (!gl) {
+    var plat = fondDeCarte(2048, true);
+    plat.className = 'vt-plat';
+    plat.setAttribute('role', 'img');
+    plat.setAttribute('aria-label', ALT);
+    host.style.aspectRatio = 'auto'; host.style.height = 'auto'; host.style.paddingBottom = '0';
+    host.appendChild(plat);
+    bar.remove();
+    liste.className = 'vt-liste';
+    return;
+  }
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', ALT);
+  canvas.className = 'vt-gl';
+  host.insertBefore(canvas, layer);
+  // cercle crayonné autour du globe, sur un calque 2D posé au-dessus du WebGL
+  var contour = document.createElement('canvas'); contour.className = 'vt-contour';
+  host.insertBefore(contour, layer);
+  var gc2 = contour.getContext('2d');
+  // ombre portée légère sous le globe, sur un calque placé SOUS le WebGL (fond transparent)
+  var ombre = document.createElement('canvas'); ombre.className = 'vt-contour';
+  host.insertBefore(ombre, canvas);
+  var go = ombre.getContext('2d');
+  // tremblé du cercle : quelques ondulations lentes + un grain fin, tirés une fois pour toutes
+  var ONDES = [[2, 0.9, 1.3], [3, 0.6, 4.1], [5, 0.35, 2.2], [9, 0.2, 5.7]];
+  function rayonTremble(a, passe) {
+    var r = 0, i;
+    for (i = 0; i < ONDES.length; i++) r += ONDES[i][1] * Math.sin(ONDES[i][0] * a + ONDES[i][2] + passe * 1.7);
+    return r;
+  }
+
+  /* ================================================================== */
+  /* 4. Maths                                                           */
+  /* ================================================================== */
+
+  function quatAxis(x, y, z, a) { var h = a / 2, s = Math.sin(h); return [x * s, y * s, z * s, Math.cos(h)]; }
+  function quatMul(a, b) {
+    return [
+      a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+      a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+      a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+      a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]
+    ];
+  }
+  function quatNorm(q) {
+    var l = Math.sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3]) || 1;
+    return [q[0]/l, q[1]/l, q[2]/l, q[3]/l];
+  }
+  function quatSlerp(a, b, t) {
+    var d = a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3], i;
+    if (d < 0) { b = [-b[0], -b[1], -b[2], -b[3]]; d = -d; }
+    if (d > 0.9995) {
+      var r = [];
+      for (i = 0; i < 4; i++) r.push(a[i] + (b[i] - a[i]) * t);
+      return quatNorm(r);
+    }
+    var th = Math.acos(d), s = Math.sin(th);
+    var w1 = Math.sin((1 - t) * th) / s, w2 = Math.sin(t * th) / s, o = [];
+    for (i = 0; i < 4; i++) o.push(a[i] * w1 + b[i] * w2);
+    return quatNorm(o);
+  }
+  function quatRot(q, v) {
+    var x = q[0], y = q[1], z = q[2], w = q[3];
+    var ix =  w*v[0] + y*v[2] - z*v[1];
+    var iy =  w*v[1] + z*v[0] - x*v[2];
+    var iz =  w*v[2] + x*v[1] - y*v[0];
+    var iw = -x*v[0] - y*v[1] - z*v[2];
+    return [
+      ix*w + iw*-x + iy*-z - iz*-y,
+      iy*w + iw*-y + iz*-x - ix*-z,
+      iz*w + iw*-z + ix*-y - iy*-x
+    ];
+  }
+  function quatFromView(lon, lat) {
+    return quatMul(quatAxis(1, 0, 0, lat * Math.PI / 180), quatAxis(0, 1, 0, -lon * Math.PI / 180));
+  }
+  function modelView(q, d, out) {
+    var x = q[0], y = q[1], z = q[2], w = q[3];
+    var x2 = x+x, y2 = y+y, z2 = z+z;
+    var xx = x*x2, xy = x*y2, xz = x*z2, yy = y*y2, yz = y*z2, zz = z*z2;
+    var wx = w*x2, wy = w*y2, wz = w*z2;
+    out[0]=1-(yy+zz); out[1]=xy+wz;     out[2]=xz-wy;     out[3]=0;
+    out[4]=xy-wz;     out[5]=1-(xx+zz); out[6]=yz+wx;     out[7]=0;
+    out[8]=xz+wy;     out[9]=yz-wx;     out[10]=1-(xx+yy);out[11]=0;
+    out[12]=0;        out[13]=0;        out[14]=-d;       out[15]=1;
+    return out;
+  }
+  function perspective(fovy, aspect, near, far, out) {
+    var f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+    out[0]=f/aspect; out[1]=0; out[2]=0; out[3]=0;
+    out[4]=0; out[5]=f; out[6]=0; out[7]=0;
+    out[8]=0; out[9]=0; out[10]=(far+near)*nf; out[11]=-1;
+    out[12]=0; out[13]=0; out[14]=2*far*near*nf; out[15]=0;
+    return out;
+  }
+  function mat4Mul(a, b, out) {
+    for (var c = 0; c < 4; c++) {
+      var b0 = b[c*4], b1 = b[c*4+1], b2 = b[c*4+2], b3 = b[c*4+3];
+      out[c*4]   = a[0]*b0 + a[4]*b1 + a[8]*b2  + a[12]*b3;
+      out[c*4+1] = a[1]*b0 + a[5]*b1 + a[9]*b2  + a[13]*b3;
+      out[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
+      out[c*4+3] = a[3]*b0 + a[7]*b1 + a[11]*b2 + a[15]*b3;
+    }
+    return out;
+  }
+  function toVec(lon, lat) {
+    var a = lat * Math.PI / 180, o = lon * Math.PI / 180, c = Math.cos(a);
+    return [c * Math.sin(o), Math.sin(a), c * Math.cos(o)];
+  }
+  function scale(v, k) { return [v[0]*k, v[1]*k, v[2]*k]; }
+
+  /* ================================================================== */
+  /* 5. Géométries                                                      */
+  /* ================================================================== */
+
+  function buildSphere(slices, stacks) {
+    var pos = [], uv = [], idx = [], ix, iy;
+    for (iy = 0; iy <= stacks; iy++) {
+      var v = iy / stacks, lat = Math.PI / 2 - v * Math.PI;
+      var cl = Math.cos(lat), sl = Math.sin(lat);
+      for (ix = 0; ix <= slices; ix++) {
+        var u = ix / slices, lon = u * 2 * Math.PI - Math.PI;
+        pos.push(cl * Math.sin(lon), sl, cl * Math.cos(lon));
+        uv.push(u, v);
+      }
+    }
+    var row = slices + 1;
+    for (iy = 0; iy < stacks; iy++)
+      for (ix = 0; ix < slices; ix++) {
+        var a = iy * row + ix, b = a + row;
+        idx.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    return { pos:new Float32Array(pos), uv:new Float32Array(uv), idx:new Uint16Array(idx), count:idx.length };
+  }
+
+  // Orthodromie surélevée en cloche. Les vols courts (intérieurs turcs) restent bas,
+  // sinon un trajet de 500 km dessinerait une boucle démesurée.
+  function greatCircle(A, B, n, h, ecart) {
+    var pa = toVec(A.lon, A.lat), pb = toVec(B.lon, B.lat);
+    // normale au plan de l'orthodromie : direction de l'écart en éventail
+    var nx = pa[1]*pb[2] - pa[2]*pb[1], ny = pa[2]*pb[0] - pa[0]*pb[2], nz = pa[0]*pb[1] - pa[1]*pb[0];
+    var nl = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1; nx /= nl; ny /= nl; nz /= nl;
+    var d = Math.max(-1, Math.min(1, pa[0]*pb[0] + pa[1]*pb[1] + pa[2]*pb[2]));
+    var om = Math.acos(d), so = Math.sin(om);
+    var deg = om * 180 / Math.PI;
+    var lift = (0.006 + 0.035 * Math.min(1, deg / 25) + 0.11 * (om / Math.PI)) * (h === undefined ? 1 : h);
+    var pts = [], i, t, w1, w2, v, l, alt;
+    for (i = 0; i <= n; i++) {
+      t = i / n;
+      if (so < 1e-6) { w1 = 1 - t; w2 = t; }
+      else { w1 = Math.sin((1 - t) * om) / so; w2 = Math.sin(t * om) / so; }
+      v = [pa[0]*w1 + pb[0]*w2, pa[1]*w1 + pb[1]*w2, pa[2]*w1 + pb[2]*w2];
+      var e = (ecart || 0) * om * Math.sin(Math.PI * t);
+      v[0] += nx * e; v[1] += ny * e; v[2] += nz * e;
+      l = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]) || 1;
+      alt = 1.004 + lift * Math.sin(Math.PI * t);
+      pts.push([v[0]/l*alt, v[1]/l*alt, v[2]/l*alt]);
+    }
+    return { pts: pts, deg: deg };
+  }
+
+  function ribbon(pts) {
+    var n = pts.length, data = new Float32Array(n * 2 * 8), o = 0, i, j, p, nx, pv, dx, dy, dz, l, t;
+    for (i = 0; i < n; i++) {
+      p = pts[i]; pv = pts[Math.max(0, i - 1)]; nx = pts[Math.min(n - 1, i + 1)];
+      dx = nx[0] - pv[0]; dy = nx[1] - pv[1]; dz = nx[2] - pv[2];
+      l = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+      dx /= l; dy /= l; dz /= l;
+      t = i / (n - 1);
+      for (j = 0; j < 2; j++) {
+        data[o++] = p[0]; data[o++] = p[1]; data[o++] = p[2];
+        data[o++] = dx;   data[o++] = dy;   data[o++] = dz;
+        data[o++] = j ? 1 : -1;
+        data[o++] = t;
+      }
+    }
+    return data;
+  }
+
+  /* ================================================================== */
+  /* 6. Programmes WebGL                                                */
+  /* ================================================================== */
+
+  function compile(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+  function program(vs, fs) {
+    var p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    return p;
+  }
+
+  var pGlobe = program(
+    'attribute vec3 aPos; attribute vec2 aUV; uniform mat4 uMVP; varying vec2 vUV;' +
+    'void main(){ vUV = aUV; gl_Position = uMVP * vec4(aPos, 1.0); }',
+    'precision mediump float; uniform sampler2D uTex; varying vec2 vUV;' +
+    'void main(){ gl_FragColor = texture2D(uTex, vUV); }');
+  var gA = { pos:gl.getAttribLocation(pGlobe, 'aPos'), uv:gl.getAttribLocation(pGlobe, 'aUV'),
+             mvp:gl.getUniformLocation(pGlobe, 'uMVP') };
+
+  var pArc = program(
+    'attribute vec3 aPos; attribute vec3 aDir; attribute float aSide; attribute float aT;' +
+    'uniform mat4 uMVP; uniform vec2 uVP; uniform float uHW;' +
+    'varying float vSide; varying float vT;' +
+    'void main(){' +
+    '  vec4 c  = uMVP * vec4(aPos, 1.0);' +
+    '  vec4 c2 = uMVP * vec4(aPos + aDir * 0.003, 1.0);' +
+    '  vec2 a = c.xy / c.w * uVP * 0.5;' +
+    '  vec2 b = c2.xy / c2.w * uVP * 0.5;' +
+    '  vec2 d = b - a; float l = length(d);' +
+    '  vec2 tg = l > 0.0001 ? d / l : vec2(1.0, 0.0);' +
+    '  vec2 nm = vec2(-tg.y, tg.x);' +
+    '  c.xy += nm * aSide * uHW / (uVP * 0.5) * c.w;' +
+    '  gl_Position = c; vSide = aSide; vT = aT;' +
+    '}',
+    'precision mediump float;' +
+    'uniform vec3 uColor; uniform float uProg; uniform float uAlpha;' +
+    'varying float vSide; varying float vT;' +
+    'void main(){' +
+    '  if (vT > uProg) discard;' +
+    '  float a = 1.0 - smoothstep(0.60, 1.0, abs(vSide));' +
+    '  if (a <= 0.005) discard;' +
+    '  gl_FragColor = vec4(uColor, a * uAlpha);' +
+    '}');
+  var aA = {
+    pos:gl.getAttribLocation(pArc,'aPos'), dir:gl.getAttribLocation(pArc,'aDir'),
+    side:gl.getAttribLocation(pArc,'aSide'), t:gl.getAttribLocation(pArc,'aT'),
+    mvp:gl.getUniformLocation(pArc,'uMVP'), vp:gl.getUniformLocation(pArc,'uVP'),
+    hw:gl.getUniformLocation(pArc,'uHW'), color:gl.getUniformLocation(pArc,'uColor'),
+    prog:gl.getUniformLocation(pArc,'uProg'), alpha:gl.getUniformLocation(pArc,'uAlpha')
+  };
+
+  var pDot = program(
+    'attribute vec3 aPos; uniform mat4 uMVP; uniform float uSize;' +
+    'void main(){ gl_Position = uMVP * vec4(aPos, 1.0); gl_PointSize = uSize; }',
+    'precision mediump float; uniform vec3 uColor; uniform float uAlpha;' +
+    'void main(){' +
+    '  float d = length(gl_PointCoord - vec2(0.5));' +
+    '  float a = 1.0 - smoothstep(0.40, 0.50, d);' +
+    '  if (a <= 0.005) discard;' +
+    '  vec3 c = mix(vec3(1.0), uColor, 1.0 - smoothstep(0.24, 0.32, d));' +
+    '  gl_FragColor = vec4(c, a * uAlpha);' +
+    '}');
+  var dA = { pos:gl.getAttribLocation(pDot,'aPos'), mvp:gl.getUniformLocation(pDot,'uMVP'),
+             size:gl.getUniformLocation(pDot,'uSize'), color:gl.getUniformLocation(pDot,'uColor'),
+             alpha:gl.getUniformLocation(pDot,'uAlpha') };
+
+  function buffer(data, target) {
+    var b = gl.createBuffer();
+    target = target || gl.ARRAY_BUFFER;
+    gl.bindBuffer(target, b); gl.bufferData(target, data, gl.STATIC_DRAW);
+    return b;
+  }
+
+  var mesh = buildSphere(128, 64);
+  var bGPos = buffer(mesh.pos), bGUV = buffer(mesh.uv), bGIdx = buffer(mesh.idx, gl.ELEMENT_ARRAY_BUFFER);
+
+  // un ruban par aéroport de départ ; l'arc part de l'origine et se dessine vers Antalya
+  var lignes = ROUTES.map(function (r, i) {
+    var A = AP[r.a], B = AP[r.b];
+    var gc = greatCircle(A, B, 160, 1, r.ecart);
+    return {
+      r: r, A: A, B: B, pts: gc.pts,
+      buf: buffer(ribbon(gc.pts)), count: gc.pts.length * 2,
+      width: LARGEUR, premier: r.k === 0,
+      color: r.o.tur ? C_TUR : C_INT,
+      dot: buffer(new Float32Array(scale(toVec(A.lon, A.lat), 1.006))),
+      delay: i * 28, prog: 0
+    };
+  });
+  var REVEAL_FIN = lignes.length * 28 + 1600;
+  var bHub = buffer(new Float32Array(scale(toVec(ARR.lon, ARR.lat), 1.006)));
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0, 0, 0, 0);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  /* ================================================================== */
+  /* 7. Fond de carte et texture                                        */
+  /* ================================================================== */
+
+  function decode(str) {
+    var pts = [], i = 0, x = 0, y = 0, n = str.length, k, r, b;
+    while (i < n) {
+      for (k = 0; k < 2; k++) {
+        r = 0; b = 0;
+        var sh = 0, c;
+        do { c = str.charCodeAt(i++) - 63; r |= (c & 0x1f) << sh; sh += 5; } while (c >= 0x20);
+        b = (r & 1) ? ~(r >> 1) : (r >> 1);
+        if (k === 0) x += b; else y += b;
+      }
+      pts.push(x / 100, y / 100);
+    }
+    return pts;
+  }
+
+  function fondDeCarte(W, avecLignes) {
+    var H = W / 2, k = W / 4096;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var g = c.getContext('2d');
+    g.fillStyle = OCEAN; g.fillRect(0, 0, W, H);
+    g.lineJoin = 'round'; g.lineCap = 'round';
+
+    function versPx(enc) {
+      var p = decode(enc), q = [], i;
+      for (i = 0; i < p.length; i += 2) q.push((p[i] + 180) / 360 * W, (90 - p[i + 1]) / 180 * H);
+      return q;
+    }
+    // Hasard reproductible (même tremblé à chaque chargement)
+    var graine = 7;
+    function alea() {
+      graine = (graine + 0x6D2B79F5) | 0;
+      var t = Math.imul(graine ^ (graine >>> 15), 1 | graine);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296 - 0.5;
+    }
+    // ox, oy : décalage (ombre, liseré) ; amp : tremblé du crayon, en px de texture
+    function trace(enc, ox, oy, amp) {
+      var q = versPx(enc), i;
+      ox = ox || 0; oy = oy || 0; amp = amp || 0;
+      g.moveTo(q[0] + ox + amp * alea(), q[1] + oy + amp * alea());
+      for (i = 2; i < q.length; i += 2) g.lineTo(q[i] + ox + amp * alea(), q[i + 1] + oy + amp * alea());
+    }
+    function lignesGeo(liste, amp) {
+      g.beginPath(); for (var i = 0; i < liste.length; i++) trace(liste[i], 0, 0, amp); g.stroke();
+    }
+    // Trait crayonné : deux passages légèrement décalés, d'épaisseur et d'opacité différentes
+    function crayon(liste, couleur, w, amp) {
+      g.strokeStyle = couleur;
+      g.globalAlpha = 0.9;  g.lineWidth = w;        lignesGeo(liste, amp);
+      g.globalAlpha = 0.55; g.lineWidth = w * 0.55; lignesGeo(liste, amp * 2.2);
+      g.globalAlpha = 1;
+    }
+    function pointilles(liste) {
+      for (var i = 0; i < liste.length; i++) {
+        var q = versPx(liste[i]), lg = 0, j;
+        for (j = 2; j < q.length; j += 2)
+          lg += Math.sqrt((q[j] - q[j-2]) * (q[j] - q[j-2]) + (q[j+1] - q[j-1]) * (q[j+1] - q[j-1]));
+        var d = Math.max(3 * k, Math.min(17 * k, lg / 9));
+        g.setLineDash([d, d * 0.75]);
+        g.beginPath(); trace(liste[i]); g.stroke();
+      }
+      g.setLineDash([]);
+    }
+
+    // graticule en pointillés : tiret de longueur nulle + bout rond = un point
+    g.strokeStyle = GRATIC; g.lineWidth = 2.6 * k;
+    g.setLineDash([0, 6 * k]);
+    g.beginPath();
+    for (var v = -150; v <= 150; v += 30) { var px = (v + 180) / 360 * W; g.moveTo(px, 0); g.lineTo(px, H); }
+    for (var h = -60; h <= 60; h += 30)   { var py = (90 - h) / 180 * H; g.moveTo(0, py); g.lineTo(W, py); }
+    g.stroke();
+    g.setLineDash([]);
+
+    // Aplat des terres en deux chemins (pays de départ / autres) : chacun d'un seul
+    // tenant pour éviter les coutures claires ; la limite entre les deux est sous une frontière.
+    // dep[i] : 0 = autre pays, 1 = pays de départ, 2 = Turquie (pays hôte)
+    var terre = GEO.terre || [], dep = {}, i, j;
+    (D.terre_dep || []).forEach(function (n) { dep[n] = 1; });
+    (D.terre_hote || []).forEach(function (n) { dep[n] = 2; });
+    function aplat(couleur, filtre, ox, oy) {
+      g.beginPath();
+      for (i = 0; i < terre.length; i++) {
+        if (filtre !== null && (dep[i] || 0) !== filtre) continue;
+        for (j = 0; j < terre[i].length; j++) { trace(terre[i][j], ox, oy); g.closePath(); }
+      }
+      g.fillStyle = couleur; g.fill();
+    }
+    // relief « découpé » : ombre portée en bas à droite, liseré clair en haut à gauche
+    aplat(OMBRE,  null, 5 * k, 6 * k);
+    aplat(LISERE, null, -3 * k, -3.5 * k);
+    aplat(TERRE, 0); aplat(TERRE_DEP, 1); aplat(TERRE_HOTE, 2);
+
+    crayon(GEO.frontiere || [], FRONT, 2.6 * k, 1.2 * k);
+    g.strokeStyle = FRONT; g.lineWidth = 2.6 * k; pointilles(GEO.pointille || []);
+    crayon(GEO.cote || [], COTE, 4.2 * k, 1.6 * k);
+
+    if (avecLignes) lignesAPlat(g, W, H);
+    return c;
+  }
+
+  // repli sans WebGL : mêmes orthodromies, à plat
+  function lignesAPlat(g, W, H) {
+    var e = W / 618;
+    function xy(lon, lat) { return [(lon + 180) / 360 * W, (90 - lat) / 180 * H]; }
+    ROUTES.forEach(function (r) {
+      var pts = arcLonLat(AP[r.a], AP[r.b], 120, r.ecart), i, p;
+      g.strokeStyle = r.o.tur ? '#004352' : '#7d2d1b';
+      g.lineWidth = LARGEUR * 2 * e;
+      g.beginPath();
+      for (i = 0; i < pts.length; i++) {
+        p = xy(pts[i][0], pts[i][1]);
+        if (i === 0 || Math.abs(pts[i][0] - pts[i - 1][0]) > 180) g.moveTo(p[0], p[1]);
+        else g.lineTo(p[0], p[1]);
+      }
+      g.stroke();
+      p = xy(AP[r.a].lon, AP[r.a].lat);
+      rond(g, p[0], p[1], 2.6 * e, '#063f34');
+    });
+    var q0 = xy(ARR.lon, ARR.lat);
+    rond(g, q0[0], q0[1], 5 * e, '#063f34');
+  }
+  function rond(g, x, y, r, couleur) {
+    g.beginPath(); g.arc(x, y, r, 0, 6.2832);
+    g.fillStyle = couleur; g.fill();
+    g.lineWidth = r * 0.5; g.strokeStyle = '#fff'; g.stroke();
+  }
+  function arcLonLat(A, B, n, ecart) {
+    return greatCircle(A, B, n, 0, ecart).pts.map(function (v) {
+      var l = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+      return [Math.atan2(v[0], v[2]) * 180 / Math.PI, Math.asin(v[1] / l) * 180 / Math.PI];
+    });
+  }
+
+  var tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  var aniso = gl.getExtension('EXT_texture_filter_anisotropic') || gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
+  if (aniso) gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT,
+    Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+  var texW = window.innerWidth <= MOBILE_MAX_WIDTH ? TEX_MOBILE : TEX_DESKTOP;
+  texW = Math.min(texW, gl.getParameter(gl.MAX_TEXTURE_SIZE));
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fondDeCarte(texW));
+  gl.generateMipmap(gl.TEXTURE_2D);
+
+  /* ================================================================== */
+  /* 8. État                                                            */
+  /* ================================================================== */
+
+  var q = quatFromView(VUES[VUE_DEFAUT].lon, VUES[VUE_DEFAUT].lat);
+  var dist = VUES[VUE_DEFAUT].d;
+  var vel = { x:0, y:0 };
+  var dirty = true, idleSince = -1e9, spinRamp = 0;
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var spin = AUTOROTATE && !reduced;
+  var SPIN_RATE = 2 * Math.PI / SPIN_SECONDS;
+  var revealT = reduced ? 1e9 : 0;
+  var hover = -1, tween = null, tipH = 60;
+
+  var mvp = new Float32Array(16), mv = new Float32Array(16), proj = new Float32Array(16);
+  var W = 0, H = 0, dpr = 1, dEff = dist;
+  var etroit = false, fs = 12;
+
+  function rotate(rx, ry) {
+    q = quatNorm(quatMul(quatMul(quatAxis(0, 1, 0, ry), quatAxis(1, 0, 0, rx)), q));
+    dirty = true;
+  }
+  function spinSelf(a) { q = quatNorm(quatMul(q, quatAxis(0, 1, 0, a))); dirty = true; }
+  function stopSpin() { spin = false; }
+
+  function project(p) {
+    var r = quatRot(q, p);
+    var vz = r[2] - dEff;
+    if (vz > -0.001) return null;
+    var f = 1 / Math.tan(15 * Math.PI / 180);
+    var aspect = W / H || 1;
+    var nx = (f / aspect) * r[0] / -vz, ny = f * r[1] / -vz;
+    var rr = p[0]*p[0] + p[1]*p[1] + p[2]*p[2];
+    return { x: (nx * 0.5 + 0.5) * W, y: (0.5 - ny * 0.5) * H, vis: r[2] > rr / dEff };
+  }
+
+  /* ================================================================== */
+  /* 9. Interactions                                                    */
+  /* ================================================================== */
+
+  var pointers = {}, nPointers = 0, pinch = 0, last = {x:0, y:0}, moved = 0;
+
+  canvas.addEventListener('pointerdown', function (e) {
+    canvas.setPointerCapture(e.pointerId);
+    var r = canvas.getBoundingClientRect();
+    last.x = e.clientX - r.left; last.y = e.clientY - r.top;
+    if (!pointers[e.pointerId]) nPointers++;
+    pointers[e.pointerId] = { x:e.clientX, y:e.clientY };
+    canvas.classList.add('vt-grab');
+    vel.x = vel.y = 0; moved = 0;
+    idleSince = performance.now(); spinRamp = 0;
+    stopSpin(); tween = null;
+    if (nPointers === 2) pinch = pinchSpan();
+  });
+
+  canvas.addEventListener('pointermove', function (e) {
+    var rect = canvas.getBoundingClientRect();
+    last.x = e.clientX - rect.left; last.y = e.clientY - rect.top;
+    var p = pointers[e.pointerId];
+    if (!p) { pick(); return; }
+    var dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    idleSince = performance.now();
+    if (nPointers >= 2) {
+      var span = pinchSpan();
+      if (pinch > 0 && span > 0) { dist = Math.max(DIST_MIN, Math.min(DIST_MAX, dist * (pinch / span))); dirty = true; }
+      pinch = span;
+      return;
+    }
+    var k = (2.0 / Math.max(1, H)) * (dist / DIST_START);
+    var rx = dy * k, ry = dx * k;
+    rotate(rx, ry);
+    vel.x = vel.x * 0.4 + rx * 0.6;
+    vel.y = vel.y * 0.4 + ry * 0.6;
+    setHover(-1);
+  });
+
+  function release(e) {
+    if (pointers[e.pointerId]) { delete pointers[e.pointerId]; nPointers--; }
+    if (nPointers < 2) pinch = 0;
+    if (nPointers === 0) canvas.classList.remove('vt-grab');
+    idleSince = performance.now();
+    if (moved < 6) pick();
+  }
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', release);
+  canvas.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') setHover(-1); });
+
+  function pinchSpan() {
+    var ids = Object.keys(pointers);
+    if (ids.length < 2) return 0;
+    var a = pointers[ids[0]], b = pointers[ids[1]];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  canvas.addEventListener('wheel', function (e) {
+    if (!WHEEL_ZOOM && !e.ctrlKey) return;
+    e.preventDefault();
+    dist = Math.max(DIST_MIN, Math.min(DIST_MAX, dist * Math.exp(e.deltaY * 0.0015)));
+    idleSince = performance.now(); spinRamp = 0; stopSpin(); tween = null;
+    dirty = true;
+  }, { passive:false });
+
+  // ligne la plus proche du curseur, à 14 px près. Toutes convergent vers Antalya :
+  // on ignore le dernier dixième de chaque arc, sinon le survol d'Antalya serait arbitraire.
+  function pick() {
+    var best = -1, bestD = 14 * 14, i, j, pts, pr, n;
+    for (i = 0; i < lignes.length; i++) {
+      pts = lignes[i].pts; n = pts.length;
+      for (j = 0; j < n * 0.9; j += 2) {
+        pr = project(pts[j]);
+        if (pr && pr.vis) {
+          var dx = pr.x - last.x, dy = pr.y - last.y, d2 = dx*dx + dy*dy;
+          if (d2 < bestD) { bestD = d2; best = i; }
+        }
+      }
+    }
+    setHover(best);
+  }
+
+  function setHover(i) {
+    if (i === hover) return;
+    hover = i;
+    dirty = true;
+    if (i < 0) { tip.classList.remove('vt-on'); return; }
+    var r = lignes[i].r, o = r.o, v = r.vol;
+    tip.innerHTML = '<b>' + o.t + '</b>' +
+      '<div class="tt-ligne"><span>Avion</span> ' + v.m + '</div>' +
+      '<div class="tt-ligne"><span>Arrivée</span> ' + dateTxt(v.h) + '</div>' +
+      '<div class="tt-ligne"><span>CO2e estimé</span> ' + (v.co2 === null ? 'non estimé' : fr(v.co2) + '&nbsp;t') + '</div>' +
+      (o.v > 1 ? '<small>Un des ' + o.v + ' jets partis de cet aéroport</small>' : '');
+    tip.classList.add('vt-on');
+    tipH = tip.offsetHeight || 60;
+  }
+
+  VUES.forEach(function (v, i) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = v.t;
+    b.setAttribute('aria-pressed', i === VUE_DEFAUT ? 'true' : 'false');
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(bar.children, function (c, j) {
+        c.setAttribute('aria-pressed', j === i ? 'true' : 'false');
+      });
+      stopSpin(); setHover(-1);
+      tween = { q0:q, q1:quatFromView(v.lon, v.lat), d0:dist, d1:v.d, t:0 };
+      dirty = true;
+    });
+    bar.appendChild(b);
+  });
+
+  /* ================================================================== */
+  /* 10. Étiquettes                                                     */
+  /* ================================================================== */
+
+  // Nommés d'office : Antalya et les départs d'au moins 2 jets (en colonne étroite :
+  // au moins 5). Les autres apparaissent quand on touche leur ligne.
+  var labels = Object.keys(AP).map(function (code) {
+    var a = AP[code];
+    var el = document.createElement('div');
+    el.textContent = a.n;
+    layer.appendChild(el);
+    var kind = a.hub ? 'vt-hub' : (a.tur ? 'vt-tur' : 'vt-int');
+    el.className = 'vt-lab ' + kind;
+    return { el: el, a: a, code: code, kind: kind, p: scale(toVec(a.lon, a.lat), 1.006),
+             pri: a.hub ? 1e6 : a.v };
+  }).sort(function (x, y) { return y.pri - x.pri; });
+
+  function placeLabels(alpha) {
+    var vus = [], boxes = [], i, seuil = etroit ? 5 : 2;
+    for (i = 0; i < labels.length; i++) {
+      var L = labels[i];
+      L.enJeu = hover >= 0 && (L.code === lignes[hover].r.a || L.code === ARR.code);
+      // de loin, les aéroports turcs sont collés à Antalya : leurs noms glisseraient
+      // sur le mauvais point. On ne les nomme que dans les vues rapprochées.
+      var montre = L.a.hub || L.enJeu || (L.a.v >= seuil && !(L.a.tur && dist > 3.0));
+      var pr = (alpha > 0.15 && montre) ? project(L.p) : null;
+      if (!pr || !pr.vis) { hide(L); continue; }
+      L.pr = pr;
+      L.w = L.a.n.length * fs * (L.a.hub ? 0.66 : 0.6) + 8;
+      vus.push(L);
+    }
+    vus.sort(function (a, b) { return (b.enJeu - a.enJeu) || (b.pri - a.pri) || (a.pr.y - b.pr.y); });
+
+    var dy = fs + 1.5, dx = fs * 0.7, hb = fs + 1;
+    for (i = 0; i < vus.length; i++) {
+      var M = vus[i], p = M.pr, ok = false, k, j, t, bx, by;
+      var tries = [[p.x + dx, p.y, 0], [p.x - dx, p.y, 1],
+                   [p.x + dx, p.y - dy, 0], [p.x + dx, p.y + dy, 0],
+                   [p.x - dx, p.y - dy, 1], [p.x - dx, p.y + dy, 1],
+                   [p.x + dx, p.y - 2 * dy, 0], [p.x + dx, p.y + 2 * dy, 0]];
+      for (k = 0; k < tries.length && !ok; k++) {
+        t = tries[k];
+        bx = t[2] ? t[0] - M.w : t[0];
+        by = t[1] - hb / 2;
+        if (bx < 0 || bx + M.w > W || by < 0 || by + hb > H) continue;
+        ok = true;
+        for (j = 0; j < boxes.length; j++) {
+          if (bx < boxes[j][0] + boxes[j][2] && bx + M.w > boxes[j][0] &&
+              by < boxes[j][1] + boxes[j][3] && by + hb > boxes[j][1]) { ok = false; break; }
+        }
+        if (!ok) continue;
+        boxes.push([bx, by, M.w, hb]);
+        M.el.className = 'vt-lab ' + M.kind + ' vt-on' + (t[2] ? ' vt-r' : '');
+        M.el.style.left = t[0] + 'px';
+        M.el.style.top  = t[1] + 'px';
+        M.el.style.opacity = (hover >= 0 && !M.enJeu) ? alpha * 0.3 : alpha;
+      }
+      if (!ok) hide(M);
+    }
+  }
+  function hide(L) { L.el.className = 'vt-lab ' + L.kind; L.el.style.opacity = 0; }
+
+  /* ================================================================== */
+  /* 11. Dimensionnement                                                */
+  /* ================================================================== */
+
+  function resize() {
+    var r = { width: host.clientWidth, height: host.clientHeight };   // sans le filet du cadre
+    if (!r.width || !r.height) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+    W = r.width; H = r.height;
+    if (w === canvas.width && h === canvas.height) return;
+    canvas.width = w; canvas.height = h;
+    contour.width = w; contour.height = h;
+    ombre.width = w; ombre.height = h;
+    gl.viewport(0, 0, w, h);
+    etroit = W < LARGEUR_ETROITE;
+    fs = etroit ? 9.5 : (W < 560 ? 11 : 12);
+    layer.style.setProperty('--fs', fs + 'px');
+    dirty = true;
+  }
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(host);
+  else window.addEventListener('resize', resize);
+  resize();
+
+  /* ================================================================== */
+  /* 12. Boucle de rendu                                                */
+  /* ================================================================== */
+
+  var visible = true, running = false, lastT = 0, raf = 0;
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) { visible = entries[0].isIntersecting; toggle(); },
+      { rootMargin:'100px' }).observe(host);
+  }
+  document.addEventListener('visibilitychange', function () { toggle(); });
+
+  function toggle() {
+    var go = visible && !document.hidden;
+    if (go && !running) { running = true; lastT = 0; raf = requestAnimationFrame(frame); }
+    else if (!go && running) { running = false; cancelAnimationFrame(raf); }
+  }
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function frame(t) {
+    raf = requestAnimationFrame(frame);
+    var dt = lastT ? Math.min(64, t - lastT) : 16.7;
+    lastT = t;
+    if (revealT < REVEAL_FIN + 1000) { revealT += dt; dirty = true; }
+    if (tween) {
+      tween.t = Math.min(1, tween.t + dt / 900);
+      var e = easeOut(tween.t);
+      q = quatSlerp(tween.q0, tween.q1, e);
+      dist = tween.d0 + (tween.d1 - tween.d0) * e;
+      dirty = true;
+      if (tween.t >= 1) tween = null;
+    } else if (nPointers === 0) {
+      if (Math.abs(vel.x) > 1e-5 || Math.abs(vel.y) > 1e-5) {
+        var f = dt / 16.7;
+        rotate(vel.x * f, vel.y * f);
+        var damp = Math.pow(0.93, f);
+        vel.x *= damp; vel.y *= damp;
+        if (Math.abs(vel.x) < 1e-5) vel.x = 0;
+        if (Math.abs(vel.y) < 1e-5) vel.y = 0;
+        idleSince = t;
+      } else if (spin && t - idleSince > IDLE_RESUME_MS) {
+        spinRamp = Math.min(1, spinRamp + dt / 1200);
+        spinSelf(spinRamp * SPIN_RATE * dt / 1000);
+      }
+    }
+    if (!dirty) return;
+    dirty = false;
+    draw();
+  }
+
+  function draw() {
+    var aspect = W / H || 1;
+    dEff = dist / Math.min(1, aspect);
+    perspective(30 * Math.PI / 180, aspect, 0.1, 100, proj);
+    modelView(q, dEff, mv);
+    mat4Mul(proj, mv, mvp);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.useProgram(pGlobe);
+    gl.uniformMatrix4fv(gA.mvp, false, mvp);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bGPos);
+    gl.enableVertexAttribArray(gA.pos); gl.vertexAttribPointer(gA.pos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, bGUV);
+    gl.enableVertexAttribArray(gA.uv);  gl.vertexAttribPointer(gA.uv, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bGIdx);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0);
+    gl.disableVertexAttribArray(gA.pos); gl.disableVertexAttribArray(gA.uv);
+
+    gl.enable(gl.BLEND);
+    gl.depthMask(false);
+    gl.useProgram(pArc);
+    gl.uniformMatrix4fv(aA.mvp, false, mvp);
+    gl.uniform2f(aA.vp, canvas.width, canvas.height);
+    gl.enableVertexAttribArray(aA.pos); gl.enableVertexAttribArray(aA.dir);
+    gl.enableVertexAttribArray(aA.side); gl.enableVertexAttribArray(aA.t);
+
+    var i, L, p, dim;
+    for (i = 0; i < lignes.length; i++) {
+      L = lignes[i];
+      p = Math.max(0, Math.min(1, (revealT - L.delay) / 1500));
+      L.prog = easeOut(p);
+      if (L.prog <= 0) continue;
+      dim = (hover >= 0 && hover !== i) ? 0.2 : 1;
+      gl.bindBuffer(gl.ARRAY_BUFFER, L.buf);
+      gl.vertexAttribPointer(aA.pos,  3, gl.FLOAT, false, 32, 0);
+      gl.vertexAttribPointer(aA.dir,  3, gl.FLOAT, false, 32, 12);
+      gl.vertexAttribPointer(aA.side, 1, gl.FLOAT, false, 32, 24);
+      gl.vertexAttribPointer(aA.t,    1, gl.FLOAT, false, 32, 28);
+      gl.uniform1f(aA.hw, (L.width + (hover === i ? 0.7 : 0)) * dpr * 1.35);
+      gl.uniform3fv(aA.color, L.color);
+      gl.uniform1f(aA.prog, L.prog);
+      gl.uniform1f(aA.alpha, dim);   // opaque : la couleur à l'écran est celle de la légende
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, L.count);
+    }
+    gl.disableVertexAttribArray(aA.pos); gl.disableVertexAttribArray(aA.dir);
+    gl.disableVertexAttribArray(aA.side); gl.disableVertexAttribArray(aA.t);
+
+    gl.useProgram(pDot);
+    gl.uniformMatrix4fv(dA.mvp, false, mvp);
+    gl.enableVertexAttribArray(dA.pos);
+    var appear = Math.max(0, Math.min(1, (revealT - 300) / 700));
+    for (i = 0; i < lignes.length; i++) {
+      L = lignes[i];
+      if (L.prog <= 0 || !L.premier) continue;
+      gl.bindBuffer(gl.ARRAY_BUFFER, L.dot);
+      gl.vertexAttribPointer(dA.pos, 3, gl.FLOAT, false, 0, 0);
+      gl.uniform1f(dA.size, 6.5 * dpr);
+      gl.uniform3fv(dA.color, C_HUB);
+      gl.uniform1f(dA.alpha, (hover >= 0 && lignes[hover].r.a !== L.r.a) ? 0.35 : 1);
+      gl.drawArrays(gl.POINTS, 0, 1);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, bHub);
+    gl.vertexAttribPointer(dA.pos, 3, gl.FLOAT, false, 0, 0);
+    gl.uniform1f(dA.size, 13 * dpr);
+    gl.uniform3fv(dA.color, C_HUB);
+    gl.uniform1f(dA.alpha, appear);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    gl.disableVertexAttribArray(dA.pos);
+
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+
+    dessineContour();
+    placeLabels(Math.max(0, Math.min(1, (revealT - 900) / 800)));
+
+    if (hover >= 0) {
+      var bas = last.y - tipH - 14 < 0;
+      tip.className = 'vt-tip vt-on' + (bas ? ' vt-bas' : '');
+      var marge = Math.min(124, W / 2);   // demi-largeur de l'infobulle (240 px)
+      tip.style.left = Math.max(marge, Math.min(W - marge, last.x)) + 'px';
+      var y = last.y + (bas ? 14 : -6);
+      if (bas) y = Math.min(y, H - tipH - 4);
+      tip.style.top = y + 'px';
+    }
+  }
+
+  // rayon apparent de la sphère (rayon 1, caméra à dEff, champ vertical de 30°)
+  function dessineContour() {
+    var cw = contour.width, ch = contour.height;
+    gc2.clearRect(0, 0, cw, ch);
+    var th = Math.asin(Math.min(1, 1 / dEff));
+    var R = Math.tan(th) / Math.tan(15 * Math.PI / 180) * ch / 2;
+    var cx = cw / 2, cy = ch / 2, n = 240, i, a, r;
+    // ombre : disque du globe, flou et décalé vers le bas ; seul ce qui dépasse de la sphère se voit
+    go.clearRect(0, 0, cw, ch);
+    go.save();
+    go.shadowColor = 'rgba(0, 0, 0, 0.32)';
+    go.shadowBlur = 18 * dpr;
+    go.shadowOffsetY = 10 * dpr;
+    go.fillStyle = '#ffffff';
+    go.beginPath(); go.arc(cx, cy, R * 0.995, 0, 2 * Math.PI); go.fill();
+    go.restore();
+
+    gc2.lineJoin = 'round'; gc2.lineCap = 'round'; gc2.strokeStyle = CONTOUR;
+    [[2.4, 0.95, 0], [1.1, 0.6, 1]].forEach(function (ps) {
+      gc2.lineWidth = ps[0] * dpr; gc2.globalAlpha = ps[1];
+      gc2.beginPath();
+      for (i = 0; i <= n; i++) {
+        a = i / n * 2 * Math.PI;
+        r = R + (0.6 + rayonTremble(a, ps[2]) * (ps[2] ? 1.3 : 0.8)) * dpr;
+        if (i) gc2.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+        else gc2.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+      }
+      gc2.stroke();
+    });
+    gc2.globalAlpha = 1;
+  }
+
+  // Hauteur automatique de l'iframe : même message que les autres cartes de Vert ({ type: "vert-carte-hauteur", h })
+  if (window.parent !== window) {
+    var hEnvoyee = 0;
+    var envoyerHauteur = function () {
+      var h = Math.ceil(root.getBoundingClientRect().bottom + window.scrollY) + 2;
+      if (h && h !== hEnvoyee) { hEnvoyee = h; window.parent.postMessage({ type: 'vert-carte-hauteur', h: h }, '*'); }
+    };
+    if (window.ResizeObserver) new ResizeObserver(envoyerHauteur).observe(root);
+    addEventListener('load', envoyerHauteur);
+    envoyerHauteur();
+  }
+
+  toggle();
+})();
+</script>
+</body>
+</html>
