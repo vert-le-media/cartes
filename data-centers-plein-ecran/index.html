@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Data center : sites, projets et mobilisations | Vert</title>
+</head>
+<body class="embed">
+<script>document.documentElement.dataset.theme = "light"; addEventListener("DOMContentLoaded", () => document.body.classList.add("embed"));</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vend+Sans:ital,wght@0,300..700;1,300..700&display=swap">
+<link rel="stylesheet" href="visionneuse.css">
+<!-- 2026-11-06 : toute la carte en Vend Sans (police du site vert.eco) ; titre en Bold, sa graisse maximale -->
+<style>:root { --police: "Vend Sans", "Helvetica Neue", Arial, sans-serif; } .hab-titre { font-weight: 700; }</style>
+<!-- VARIANTE « plein écran » (2026-11-16), faite à la main à partir de ../data-centers/ (générée par
+     2026-10_data-centers/06_scripts/02_carte_interactive.py) : données, fonds et logo lus dans ../data-centers/ -->
+<script>window.VIS_FOND_DIR = "../data-centers/"; window.VIS_DONNEES_DIR = "../data-centers/";</script>
+
+<!-- habillage façon BRGM : titre, légende, recherche, carte, sources + logo -->
+<div class="habillage">
+<h3 class="hab-titre">Data centers en France : où en est-on ?</h3>  <!-- T3 de Vert (2026-11-10) -->
+<div class="legende" id="legende" hidden></div>
+
+<aside class="panneau">
+  <div class="recherche">
+    <input id="q" type="search" placeholder="Recherchez votre commune ou une entreprise" autocomplete="off" aria-label="Recherchez votre commune ou une entreprise">
+    <div class="resultats" id="res" role="listbox" hidden></div>
+  </div>
+  <details class="reglages" id="reglages" hidden>
+    <summary>Couches</summary>
+    <label><input type="checkbox" id="c-fond" checked><span>Fond</span></label>
+    <label><input type="checkbox" id="c-sombre"><span>Fond sombre</span></label>
+    <label><input type="checkbox" id="c-aplats" checked><span>Data center</span></label>
+    <label><input type="checkbox" id="c-limites" checked><span>Limites des communes</span></label>
+    <label><input type="checkbox" id="c-dep" checked><span>Limites des départements</span></label>
+    <label><input type="checkbox" id="c-om" checked><span>Encarts outre-mer</span></label>
+  </details>
+</aside>
+
+<main class="cadre">
+  <canvas id="carte" aria-label="Carte des data center, des projets et des oppositions en France"></canvas>
+  <div class="zoom">
+    <button id="z-plus" type="button" title="Zoomer" aria-label="Zoomer">+</button>
+    <button id="z-moins" type="button" title="Dézoomer" aria-label="Dézoomer">−</button>
+    <button id="z-reset" type="button" title="Vue d'ensemble" aria-label="Vue d'ensemble">⤢</button>
+    <button id="z-plein" type="button" title="Plein écran" aria-label="Plein écran">
+      <svg class="ic-ouvrir" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg>
+      <svg class="ic-fermer" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4"/></svg></button>
+  </div>
+  <div class="tooltip" id="tt" hidden></div>
+  <div class="chargement" id="chg">Chargement…</div>
+</main>
+
+<footer class="hab-pied">
+  <div class="hab-textes">
+    <p class="hab-note">* Terrains proposés par l'État, RTE ou EDF pour accueillir des data centers, pas encore attribués.</p>
+    <span class="hab-source" id="pied-source"></span>
+  </div>
+  <img class="hab-logo" src="../data-centers/logo-vert.png" alt="Vert">
+</footer>
+
+<details class="hab-methodo">
+  <summary>Méthodologie</summary>
+  <div class="hab-methodo-corps">
+    <p>La carte reprend les données du collectif Le Nuage était sous nos pieds, datées du 10 novembre 2026. Celles-ci sont issues d'une cartographie collaborative qui combine les data center recensés dans OpenStreetMap avec des informations publiques sur les projets de data center, les oppositions et les recours juridiques, récoltées notamment via des articles, des communiqués et des participations individuelles.</p>
+    <p>Les données de cette carte ne sont pas issues d'un recensement officiel et ne sont donc pas exhaustives. Il est aussi possible que certaines données deviennent erronées si des projets venaient à être annulés.</p>
+  </div>
+</details>
+
+</div>
+
+<script src="../data-centers/donnees-base.js"></script>
+<script src="../data-centers/donnees-datacenters.js"></script>
+<script src="visionneuse.js"></script>
+</body>
+</html>
