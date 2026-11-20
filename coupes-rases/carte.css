@@ -1,0 +1,146 @@
+/* Carte interactive des coupes rases — habillage repris de la carte des data centers
+   (99_Archives/2026-10_data-centers, visionneuse.css, section « habillage ») : cadre blanc bordé, Vend Sans (police
+   de vert.eco), titre façon intertitre h3 des articles, légende au-dessus de la carte, source + logo, méthodologie
+   repliée. Le cadre reste blanc même si le lecteur est en mode sombre (titre et légende noirs). */
+:root {
+  --fond: #ffffff; --texte: #1c2426; --doux: #5d6b6e; --bord: #dfe5e6;
+  --vert: #004352; --accent: #E2683C; --survol: #fdf0e9; --carte: #ffffff;
+  --police: "Vend Sans", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; padding: 8px; background: #fff; color: #000; font: 13px/1.45 var(--police); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Cadre ---------- */
+.habillage {
+  width: 100%; max-width: 700px; margin: 0 auto; display: flex; flex-direction: column;
+  background: #fff; color: #000; border: 1px solid #dfe5e6; border-radius: 6px; padding: 14px 16px 10px;
+}
+/* titre = intertitre (h3) des articles de vert.eco : Vend Sans 700, 22 à 24 px */
+.hab-titre {
+  margin: 0 0 8px; font: 700 clamp(22px, 1.375rem + ((1vw - 3.2px) * 0.179), 24px)/1.2 var(--police);
+  letter-spacing: -0.01em; color: #000; text-wrap: balance;
+}
+
+/* ---------- Légende (au-dessus de la carte) ---------- */
+.legende { margin: 0 0 8px; font-size: 13px; line-height: 1.3; color: #000; }
+/* bascule forêt / territoire posée sur la carte, en haut à gauche (les boutons de zoom sont en haut à droite) */
+.bascule { position: absolute; left: 8px; top: 8px; z-index: 4; display: flex; border: 1px solid var(--bord); border-radius: 6px;
+           overflow: hidden; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); }
+.bascule button {
+  border: 0; background: var(--fond); color: var(--doux); font: 500 13px var(--police);
+  padding: 7px 12px; cursor: pointer; white-space: nowrap;
+}
+.bascule button + button { border-left: 1px solid var(--bord); }
+.bascule button[aria-checked="true"] { background: var(--vert); color: #fff; }
+.leg-titre { font-weight: 500; margin-bottom: 5px; }
+/* Légende personnalisée (modèle de Sébastien) : barre en pointe à bord noir et ombre grise, puis les deux carrés.
+   Sur ordinateur, tout sur une ligne (barre à gauche, carrés à droite) ; sous 700 px, carrés sous la barre. */
+.leg-cases { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 20px; }
+.leg-barre { order: 1; flex: 1 1 0; min-width: 240px; }
+.leg-gauche { order: 2; flex: none; display: flex; flex-wrap: nowrap; gap: 4px 18px; }   /* carrés alignés sur la barre (mêmes 21 px de haut) */
+.leg-astuce { order: 3; flex-basis: 100%; }
+.leg-item { display: flex; align-items: center; gap: 6px; height: 21px; font: inherit; font-size: 12.5px; line-height: 1; color: #000;
+            border: 0; background: none; padding: 0; text-align: left; }
+.leg-item svg { flex: none; display: block; }
+button.leg-item { cursor: pointer; }
+button.leg-item:hover rect:last-child { stroke-width: 2; }
+.leg-item[data-masquee] span { opacity: .45; text-decoration: line-through; }
+.leg-item.cache { visibility: hidden; }   /* garde la même hauteur de légende d'un mode à l'autre */
+.leg-barre { max-width: 340px; }
+.barre { display: block; overflow: visible; }
+.barre .seg { cursor: pointer; outline: none; }
+.barre .seg:hover path, .barre .seg:focus-visible path { filter: brightness(1.1); stroke: #000; stroke-width: 2; }
+.grad { position: relative; height: 16px; font-size: 12px; margin-top: 1px; }
+.grad span { position: absolute; top: 0; transform: translateX(-2px); white-space: nowrap; }   /* seuil bas, au bord gauche de la case */
+.leg-astuce { font-size: 11px; color: var(--doux); margin-top: 2px; }
+.tt-classe i { flex: none; width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .12); }
+
+/* ---------- Recherche ---------- */
+.recherche { position: relative; margin: 0 0 8px; }
+.recherche input {
+  width: 100%; padding: 8px 34px 8px 10px; border: 1px solid var(--bord); border-radius: 6px;
+  font: inherit; color: var(--texte); background: var(--fond);
+}
+.recherche input::-webkit-search-cancel-button { display: none; }
+.effacer {
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px;
+  border: 0; background: none; color: var(--doux); font: 20px/1 var(--police); cursor: pointer; border-radius: 4px;
+}
+.effacer:hover { color: var(--texte); background: var(--survol); }
+.resultats {
+  position: absolute; left: 0; right: 0; top: 100%; margin-top: 2px; z-index: 10;
+  background: var(--fond); border: 1px solid var(--bord); border-radius: 6px; max-height: 280px; overflow-y: auto;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+}
+.resultats div { padding: 7px 10px; cursor: pointer; }
+.resultats div:hover, .resultats div.actif { background: var(--survol); }
+.resultats small { color: var(--doux); }
+
+/* ---------- Carte ---------- */
+.cadre {
+  position: relative; overflow: hidden; background: var(--carte); border-radius: 3px;
+  border: 1px solid var(--bord);   /* filet fin autour de la carte (même gris que le cadre et la recherche) */
+  height: 520px;   /* valeur de secours : la hauteur réelle est calée par carte.js sur les proportions de la France */
+}
+/* pas de fondu haut / bas (retiré le 2026-11-19 : rend mal sur le fond satellite) */
+canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+canvas.drag { cursor: grabbing; }
+
+.zoom { position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.zoom button {
+  width: 34px; height: 34px; border: 1px solid var(--bord); background: var(--fond); color: var(--vert);
+  border-radius: 6px; font: 600 18px var(--police); cursor: pointer;
+}
+.zoom button:hover { background: var(--survol); }
+
+.tooltip {
+  position: absolute; pointer-events: none; background: var(--fond); color: var(--texte); z-index: 5;
+  border: 1px solid var(--bord); padding: 8px 10px; border-radius: 6px; font-size: 12.5px; line-height: 1.4;
+  width: max-content; max-width: min(260px, calc(100% - 16px)); box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
+}
+.tooltip b { font-weight: 600; }
+.tooltip .lieu { color: var(--doux); font-size: 12px; margin-bottom: 3px; }
+.tt-classe { display: flex; align-items: center; gap: 6px; }
+.tt-chiffre { font-size: 18px; font-weight: 600; }
+.tooltip small { color: var(--doux); display: block; }
+.tt-zone { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dfe5e6; color: var(--doux); font-size: 11.5px; line-height: 1.35; }
+
+.chargement {
+  position: absolute; inset: 0; display: grid; place-items: center; color: var(--doux);
+  background: var(--carte); font-size: 13px;
+}
+
+/* ---------- Pied : source + logo, méthodologie ---------- */
+.hab-pied { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.hab-source { font-size: 12px; font-weight: 300; line-height: 1.35; color: #000; }   /* source en Light */
+.hab-logo { flex: none; display: block; width: 72px; height: auto; }
+.hab-methodo {
+  margin-top: 10px; border: 1px solid #dfe5e6; border-radius: 4px; background: #f6f7f7;
+  font-size: 12px; line-height: 1.45; color: #000;
+}
+.hab-methodo > summary { cursor: pointer; padding: 6px 10px; font-weight: 600; font-size: 13px; }
+.hab-methodo-corps { padding: 0 10px 8px; }
+.hab-methodo-corps p { margin: 0 0 6px; }
+.chrono { font-size: 11px; color: var(--doux); margin: 6px 0 0; }
+
+@media (max-width: 700px) {
+  .leg-cases { flex-direction: column; }
+  .leg-barre { flex: none; width: 100%; min-width: 0; }
+  .leg-gauche { flex-wrap: wrap; margin-top: 0; }
+}
+@media (max-width: 760px) {
+  body { padding: 0; }
+  .habillage { padding: 10px 10px 8px; }
+  .hab-logo { width: 60px; }
+  /* recherche : invite plus petite ; la saisie reste à 16 px, sinon iOS zoome la page au toucher */
+  .recherche input { font-size: 16px; }
+  .recherche input::placeholder { font-size: 13px; }
+}
+@media (max-width: 520px) {
+  .leg-gauche { gap: 4px 16px; }
+  .bascule button { padding: 7px 8px; font-size: 12.5px; }
+}
