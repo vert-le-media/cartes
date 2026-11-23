@@ -419,15 +419,17 @@
     dessinerHexagones();
     ctx.setTransform(DPR * s, 0, 0, -DPR * s, DPR * (W / 2 - vue.cx * s), DPR * (Hh / 2 + vue.cy * s));
 
-    // limites des départements, appuyées : trait sombre sur halo clair (plan) ou blanc sur halo sombre (satellite)
+    // limites des départements : trait sombre sur halo clair (plan) ou blanc sur halo sombre (satellite).
+    // Atténuées le 2026-11-23 (demande de Sébastien) : trait blanc à 70 %, plus fin, halo plus léger et plus étroit
+    // (avant : blanc plein 1,1 / 1,6 px, halo noir 55 % sur +2,2 px ; contour de la France blanc plein 1,4 px, halo 55 %)
     ctx.lineJoin = "round"; ctx.lineCap = "round";
-    const proche = s > sMin * 3, ep = proche ? 1.6 : 1.1;
-    ctx.strokeStyle = satellite ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.85)";
-    ctx.lineWidth = (ep + 2.2) * px; ctx.stroke(LIMITES);
-    ctx.strokeStyle = satellite ? "#ffffff" : "rgba(28,36,38,0.75)";
+    const proche = s > sMin * 3, ep = proche ? 1.3 : 0.9;
+    ctx.strokeStyle = satellite ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.85)";
+    ctx.lineWidth = (ep + 1.6) * px; ctx.stroke(LIMITES);
+    ctx.strokeStyle = satellite ? "rgba(255,255,255,0.7)" : "rgba(28,36,38,0.75)";
     ctx.lineWidth = ep * px; ctx.stroke(LIMITES);
-    if (satellite) { ctx.strokeStyle = "rgba(0,0,0,0.55)"; ctx.lineWidth = 3.4 * px; ctx.stroke(FRANCE); }
-    ctx.strokeStyle = satellite ? "#ffffff" : "#1c2426"; ctx.lineWidth = (satellite ? 1.4 : 1) * px;
+    if (satellite) { ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 2.8 * px; ctx.stroke(FRANCE); }
+    ctx.strokeStyle = satellite ? "rgba(255,255,255,0.85)" : "#1c2426"; ctx.lineWidth = (satellite ? 1.2 : 1) * px;
     ctx.stroke(FRANCE);
 
     if (selection && selection.chemin) {
@@ -668,6 +670,9 @@
   // même hauteur et même ligne médiane pour la barre, les carrés et leur texte.
   const LG = { h: 14, y: 3, ombre: 3, trait: 1.2, sep: 1, pointe: 7 };   // hauteur, haut, décalage de l'ombre, traits
   const HAUT_SVG = LG.y + LG.h + LG.ombre + 1;                             // 21 px : centre de la barre à 10 px
+  // barre des taux un peu plus foncée que la carte (2026-11-23, demande de Sébastien) : opacité de la carte + 0,15
+  // (0,45 → 0,60 pour les classes claires, 0,62 → 0,77 pour les autres) ; carrés et carte inchangés
+  const LEG_FONCE = 0.15;
   function barreSVG(largeur) {
     const L = Math.max(200, Math.round(largeur || 300)), x0 = 1, x1 = L - 1, pointe = LG.pointe;
     const yh = LG.y, yb = LG.y + LG.h, ym = (yh + yb) / 2, seg = (x1 - x0 - 2 * pointe) / 7;
@@ -683,7 +688,7 @@
       const m = masquees.has(k);
       s += `<g class="seg${m ? " masquee" : ""}" data-k="${k}" role="button" tabindex="0" aria-pressed="${!m}" aria-label="${ETIQ[k]}">` +
         `<title>${ETIQ[k]} : cliquer pour ${m ? "afficher" : "masquer"}</title>` +
-        `<path d="${forme}" fill="${PAL[k]}" fill-opacity="${m ? 0.12 : opacite(k)}"/>` +
+        `<path d="${forme}" fill="${PAL[k]}" fill-opacity="${m ? 0.12 : opacite(k) + LEG_FONCE}"/>` +
         (m ? `<line x1="${g + 4}" y1="${yb - 2}" x2="${d - 4}" y2="${yh + 2}" stroke="#000" stroke-width="${LG.sep}"/>` : "") + "</g>";
     }
     for (let k = 1; k < 7; k++) { const x = x0 + pointe + k * seg; s += `<line x1="${x}" y1="${yh}" x2="${x}" y2="${yb}" stroke="#000" stroke-width="${LG.sep}"/>`; }
@@ -736,6 +741,8 @@
   $("leg-cases").addEventListener("click", basculerClasse);
   $("leg-cases").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); basculerClasse(e); } });
 
+  // bascule forêt / territoire retirée de la page le 2026-11-23 (part de la forêt seulement) : code du mode « hex »
+  // gardé, inactif (aucun bouton .bascule dans index.html)
   document.querySelectorAll(".bascule button").forEach(b => b.addEventListener("click", () => {
     mode = b.dataset.mode;
     document.querySelectorAll(".bascule button").forEach(x => x.setAttribute("aria-checked", x === b));
@@ -855,9 +862,8 @@
     // la police Vend Sans arrive après le premier dessin : on redessine les noms une fois chargée
     // police chargée : noms redessinés, et hauteur de carte recalculée (le titre peut changer de hauteur)
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { recadrer(true); rendre(); });
-    // lien direct : index.html?commune=33529 (code INSEE) ; &mode=hex pour la part du territoire
+    // lien direct : index.html?commune=33529 (code INSEE)
     const P = new URLSearchParams(location.search);
-    if (P.get("mode") === "hex") document.querySelector('.bascule [data-mode="hex"]').click();
     if (P.get("commune")) chargerCommunes().then(() => {
       const c = window.COMMUNES.find(x => x.c === P.get("commune"));
       if (c) choisir(c);

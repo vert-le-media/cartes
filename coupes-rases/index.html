@@ -21,7 +21,7 @@
 
   <h3 class="hab-titre">Les coupes rases en France entre 2019 et 2025</h3>
 
-  <!-- légende au-dessus de la carte : titre et classes du mode affiché (bascule forêt / territoire : en haut à gauche de la carte) -->
+  <!-- légende au-dessus de la carte : titre et classes du mode affiché (version « part du territoire » retirée le 2026-11-23 : part de la forêt seulement) -->
   <div class="legende" id="legende">
     <div class="leg-titre" id="leg-titre"></div>
     <div class="leg-cases" id="leg-cases"></div>
@@ -35,10 +35,6 @@
   </div>
 
   <div class="cadre" id="cadre">
-    <div class="bascule" role="radiogroup" aria-label="Rapporter la surface coupée à">
-      <button type="button" role="radio" data-mode="foret" aria-checked="true">Part de la forêt</button>
-      <button type="button" role="radio" data-mode="hex" aria-checked="false">Part du territoire</button>
-    </div>
     <canvas id="carte" aria-label="Carte des coupes rases par hexagone de 2 km, France métropolitaine, 2019-2025"></canvas>
     <div class="zoom">
       <button id="z-plus" type="button" title="Zoomer" aria-label="Zoomer">+</button>
