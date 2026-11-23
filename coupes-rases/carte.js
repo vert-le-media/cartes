@@ -1,7 +1,7 @@
 /*
  * carte.js — Carte interactive des coupes rases 2019-2025 par hexagone de 2 km (France métropolitaine).
  * JS natif, sans dépendance. Tout est dessiné en Lambert-93 (mètres) dans un <canvas>.
- *   - deux modes : part de la surface boisée / part du territoire coupée à blanc
+ *   - deux modes : part de la surface boisée / part du territoire en coupes rases
  *   - survol (souris) ou toucher (mobile) : infobulle de l'hexagone
  *   - recherche de commune : le contour (chargé à la demande, donnees/communes/XX.js) n'apparaît
  *     qu'une fois la commune choisie ; elle est soulignée (contour) et la carte zoome dessus.
@@ -539,11 +539,11 @@
         ? `<div class="tt-classe"><i style="background:${GRIS}"></i><b>Pas de forêt</b></div>
            <small>Aucune surface boisée dans cet hexagone : taux non calculé.</small>`
         : `<div class="tt-classe"><i style="background:${couleurClasse(k)}"></i><span class="tt-chiffre">${pourcent(t)} %</span></div>
-           <div>de la forêt coupée à blanc entre 2019 et 2025</div>
+           <div>de la forêt en coupes rases entre 2019 et 2025</div>
            <small>${ha(coupe)} ha coupés sur ${ha(boise)} ha de forêt</small>`;
     } else {
       corps = `<div class="tt-classe"><i style="background:${couleurClasse(k)}"></i><span class="tt-chiffre">${pourcent(t)} %</span></div>
-           <div>du territoire coupé à blanc entre 2019 et 2025</div>
+           <div>du territoire en coupes rases entre 2019 et 2025</div>
            <small>${ha(coupe)} ha coupés sur ${ha(terre)} ha (hexagone de 2 km)</small>`;
     }
     const z = EN_ZONE[i] && zonesVisibles
