@@ -33,7 +33,8 @@ body { margin: 0; padding: 8px; background: #fff; color: #000; font: 13px/1.45 v
 .leg-cases { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 20px; }
 .leg-barre { order: 1; flex: 1 1 0; min-width: 240px; }
 .leg-gauche { order: 2; flex: none; display: flex; flex-wrap: nowrap; gap: 4px 18px; }   /* carrés alignés sur la barre (mêmes 21 px de haut) */
-.leg-astuce { order: 3; flex-basis: 100%; }
+.leg-mob { order: 3; flex-basis: 100%; }   /* mobilisations : ligne à part, sous la barre et les carrés */
+.leg-astuce { order: 4; flex-basis: 100%; }
 .leg-item { display: flex; align-items: center; gap: 6px; height: 21px; font: inherit; font-size: 12.5px; line-height: 1; color: #000;
             border: 0; background: none; padding: 0; text-align: left; }
 .leg-item svg { flex: none; display: block; }
@@ -94,6 +95,8 @@ canvas.drag { cursor: grabbing; }
   width: max-content; max-width: min(260px, calc(100% - 16px)); box-shadow: 0 6px 18px rgba(0, 0, 0, .16);
 }
 .tooltip b { font-weight: 600; }
+.tooltip:has(.tt-mob) { max-width: min(300px, calc(100% - 16px)); }
+.tt-mob p { margin: 4px 0 5px; }
 .tooltip .lieu { color: var(--doux); font-size: 12px; margin-bottom: 3px; }
 .tt-classe { display: flex; align-items: center; gap: 6px; }
 .tt-chiffre { font-size: 18px; font-weight: 600; }

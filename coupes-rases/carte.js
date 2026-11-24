@@ -30,7 +30,8 @@
   // classes claires (aucune coupe, 0-2 %, 2-4 %), qui couvrent l'essentiel du territoire, plus transparentes
   const opacite = k => k === 8 || k === 0 || k === 1 ? 0.45 : 0.62;
   const MODES = {
-    foret: { titre: "Taux de coupes rases en % de la forêt, par maille de 2 km de diamètre", gris: "Pas de forêt" },
+    foret: { titre: window.COMMUNES_CARTE ? "Taux de coupes rases en % de la forêt, par commune"
+                                         : "Taux de coupes rases en % de la forêt, par maille de 2 km de diamètre", gris: "Pas de forêt" },
     hex:   { titre: "Taux de coupes rases en % du territoire, par maille de 2 km de diamètre", gris: null },
   };
 
@@ -88,6 +89,67 @@
     CLASSES[m] = cl;
   }
   // (H.coupe et H.boise en 0,01 ha ; H.terre en 0,1 ha)
+
+  // ---------- Variante communale (communes.html, 2026-11-23) ----------
+  // Chargée seulement si la page fournit window.COMMUNES_CARTE (contours, script 11) et window.TAUX_COMMUNES
+  // (surfaces coupée / boisée en 0,01 ha + zone d'erreur, script 10). Les communes remplacent alors les hexagones
+  // pour le dessin, le survol et l'infobulle ; tout le reste (légende, recherche, satellite, points) est commun.
+  const COMMUNAL = !!(window.COMMUNES_CARTE && window.TAUX_COMMUNES);
+  const COM = COMMUNAL ? Object.keys(window.COMMUNES_CARTE.geo) : [];
+  const NC = COM.length, CL_C = new Uint8Array(NC), ERR_C = new Uint8Array(NC), TX_C = new Float64Array(NC);
+  const CHEMIN_C = new Array(NC), BB_C = new Float64Array(NC * 4), CASES_C = new Map(), CASE_C = 10000;
+  if (COMMUNAL) {
+    for (let i = 0; i < NC; i++) {
+      const t = window.TAUX_COMMUNES[COM[i]] || [0, 0, 0];
+      TX_C[i] = t[1] > 0 ? 100 * t[0] / t[1] : NaN;
+      CL_C[i] = classe(t[1] > 0 ? TX_C[i] : null); ERR_C[i] = t[2] ? 1 : 0;
+    }
+  }
+  const clAt = i => COMMUNAL ? CL_C[i] : CLASSES[mode][i];
+  const zoneAt = i => COMMUNAL ? ERR_C[i] : EN_ZONE[i];
+  function preparerCommunes() {   // chemins Path2D (Lambert-93) et index spatial des communes, une fois
+    if (!COMMUNAL || preparerCommunes.ok) return;
+    preparerCommunes.ok = true;
+    const t = performance.now();
+    for (let i = 0; i < NC; i++) {
+      const { p, bb } = cheminCommune(window.COMMUNES_CARTE.geo[COM[i]]);
+      CHEMIN_C[i] = p; BB_C.set(bb, 4 * i);
+      for (let gx = Math.floor(bb[0] / CASE_C); gx <= Math.floor(bb[2] / CASE_C); gx++)
+        for (let gy = Math.floor(bb[1] / CASE_C); gy <= Math.floor(bb[3] / CASE_C); gy++) {
+          const key = gx * 1000 + gy; if (!CASES_C.has(key)) CASES_C.set(key, []); CASES_C.get(key).push(i);
+        }
+    }
+    chrono("contours des communes préparés", performance.now() - t);
+  }
+  // peint les communes dans cv (coin haut gauche X0, Ytop en mètres ; m mètres par pixel), découpé à la France
+  function peindreCommunes(cv, X0, Ytop, m, contours) {
+    preparerCommunes();
+    const c = cv.getContext("2d"), X1 = X0 + cv.width * m, Ybas = Ytop - cv.height * m;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+    c.setTransform(1 / m, 0, 0, -1 / m, -X0 / m, Ytop / m);
+    const parClasse = new Map(), vis = [];
+    for (let i = 0; i < NC; i++) {
+      const o = 4 * i;
+      if (BB_C[o + 2] < X0 || BB_C[o] > X1 || BB_C[o + 3] < Ybas || BB_C[o + 1] > Ytop) continue;
+      vis.push(i);
+      const k = zonesVisibles && ERR_C[i] ? 9 : CL_C[i];
+      if (k !== 9 && ((satellite && k === 7) || masquees.has(k))) continue;
+      if (!parClasse.has(k)) parClasse.set(k, new Path2D());
+      parClasse.get(k).addPath(CHEMIN_C[i]);
+    }
+    for (const [k, p] of parClasse) {
+      c.globalAlpha = k === 9 ? Z_OPAC : (satellite ? opacite(k) : 1);
+      c.fillStyle = k === 9 ? Z_COUL : couleurClasse(k);
+      c.fill(p, "evenodd");
+    }
+    c.globalAlpha = 1;
+    if (contours) {   // limites communales en filet blanc, seulement quand on a zoomé
+      const p = new Path2D(); for (const i of vis) p.addPath(CHEMIN_C[i]);
+      c.strokeStyle = "rgba(255,255,255,0.45)"; c.lineWidth = 0.7 * m; c.stroke(p);
+    }
+    return c;
+  }
+
   // Index spatial : hexagones triés par ligne puis colonne, avec le début de chaque ligne,
   // pour ne parcourir que les hexagones visibles à l'écran.
   let LMAX = 0;
@@ -133,6 +195,9 @@
   if (ZONES) for (const i of window.ZONES.hex) EN_ZONE[i] = 1;
   const Z_COUL = "#c3c9ca", Z_OPAC = 0.75, Z_ETIQ = "Marge d'erreur élevée";
   let zonesVisibles = true;
+  // Mobilisations contre des coupes rases (2026-11-23, texte de Canopée) : un point au centre de la commune
+  const MOB = window.MOBILISATIONS || [], MOB_COUL = "#004352", MOB_ETIQ = "Mobilisation contre une coupe rase";
+  let mobVisibles = true, mobSurvole = -1;
   let BB = [Infinity, Infinity, -Infinity, -Infinity];
   for (const r of window.CONTOURS.france) for (let k = 0; k < r.length; k += 2) {
     BB = [Math.min(BB[0], r[k]), Math.min(BB[1], r[k + 1]), Math.max(BB[2], r[k]), Math.max(BB[3], r[k + 1])];
@@ -348,7 +413,7 @@
     const t = performance.now();
     const cv = nationale && nationale.cv || document.createElement("canvas");
     cv.width = Math.ceil((BB[2] - BB[0]) * S_NAT); cv.height = Math.ceil((BB[3] - BB[1]) * S_NAT);
-    peindreRaster(cv, BB[0], BB[3], 1 / S_NAT);
+    if (COMMUNAL) peindreCommunes(cv, BB[0], BB[3], 1 / S_NAT, false); else peindreRaster(cv, BB[0], BB[3], 1 / S_NAT);
     chrono("image nationale", performance.now() - t);
     return (nationale = { cv, cle: cleFond() });
   }
@@ -358,14 +423,14 @@
     const cv = couche && couche.cv || document.createElement("canvas");
     cv.width = Math.round(Wc * DPR); cv.height = Math.round(Hc * DPR);
     const X0 = vue.cx - Wc / 2 / s, Ytop = vue.cy + Hc / 2 / s;
-    const c = peindreRaster(cv, X0, Ytop, 1 / (s * DPR));
-    if (s * 2000 > 28) {   // contour blanc des hexagones, seulement quand ils sont grands (peu nombreux)
+    const c = COMMUNAL ? peindreCommunes(cv, X0, Ytop, 1 / (s * DPR), s > sMin * 2.5) : peindreRaster(cv, X0, Ytop, 1 / (s * DPR));
+    if (!COMMUNAL && s * 2000 > 28) {   // contour blanc des hexagones, seulement quand ils sont grands (peu nombreux)
       c.save();
       c.setTransform(DPR * s, 0, 0, -DPR * s, -X0 * s * DPR, Ytop * s * DPR);
       c.clip(FRANCE, "evenodd");
       c.beginPath();
       for (const i of visibles(X0, Ytop - Hc / s, X0 + Wc / s, Ytop)) {
-        if (!(ZONES && zonesVisibles && EN_ZONE[i]) && ((satellite && CLASSES[mode][i] === 7) || masquees.has(CLASSES[mode][i]))) continue;
+        if (!(ZONES && zonesVisibles && EN_ZONE[i]) && ((satellite && CLASSES[mode][i] === 7) || masquees.has(CLASSES[mode][i]))) continue;   // (hexagones seulement)
         hexagone(c, i);
       }
       c.strokeStyle = satellite ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.55)"; c.lineWidth = 0.6 / s;
@@ -438,7 +503,7 @@
       ctx.strokeStyle = "#1c2426"; ctx.lineWidth = 2.4 * px; ctx.stroke(selection.chemin);
     }
     if (survole >= 0) {
-      const p = new Path2D(); hexagone(p, survole);
+      const p = COMMUNAL ? CHEMIN_C[survole] : new Path2D(); if (!COMMUNAL) hexagone(p, survole);
       ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3.5 * px; ctx.stroke(p);
       ctx.strokeStyle = "#1c2426"; ctx.lineWidth = 1.6 * px; ctx.stroke(p);
     }
@@ -456,6 +521,15 @@
         ctx.fillStyle = satellite ? "#ffffff" : "#1c2426"; ctx.fillText(t, u, v);
       }
     }
+    // points des mobilisations (pastille vert foncé cerclée de blanc ; plus grosse au survol)
+    if (mobVisibles) MOB.forEach((m, k) => {
+      const [u, v] = versEcran(m.x, m.y);
+      if (u < -20 || u > W + 20 || v < -20 || v > Hh + 20) return;
+      const r = k === mobSurvole ? 8.5 : 6.5;
+      ctx.beginPath(); ctx.arc(u, v + 1, r + 2, 0, 2 * Math.PI); ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fill();
+      ctx.beginPath(); ctx.arc(u, v, r, 0, 2 * Math.PI);
+      ctx.fillStyle = MOB_COUL; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+    });
     // étiquette de la commune sélectionnée
     if (selection && selection.bb) {
       const [u, v] = versEcran((selection.bb[0] + selection.bb[2]) / 2, selection.bb[3]);
@@ -470,6 +544,16 @@
   // ---------- Hexagone sous le pointeur ----------
   function trouver(u, v) {
     const [X, Y] = versMonde(u, v);
+    if (COMMUNAL) {   // commune qui contient le point (boîtes englobantes puis test exact)
+      preparerCommunes();
+      const ctx2 = trouver.ctx || (trouver.ctx = document.createElement("canvas").getContext("2d"));
+      for (const i of CASES_C.get(Math.floor(X / CASE_C) * 1000 + Math.floor(Y / CASE_C)) || []) {
+        const o = 4 * i;
+        if (X < BB_C[o] || X > BB_C[o + 2] || Y < BB_C[o + 1] || Y > BB_C[o + 3]) continue;
+        if (ctx2.isPointInPath(CHEMIN_C[i], X, Y, "evenodd")) return i;
+      }
+      return -1;
+    }
     const r = Math.round((Y - G.y0) / G.dy), c = Math.round((X - G.x0) / (G.dx / 2));
     let best = -1, dmin = Infinity;
     for (let rr = r - 1; rr <= r + 1; rr++) for (let cc = c - 2; cc <= c + 2; cc++) {
@@ -526,7 +610,24 @@
   const ha = x => x < 10 ? fmt(x, 1) : fmt(x);   // x en hectares
   function pourcent(t) { return t < 1 ? fmt(t, 1) : fmt(Math.round(t)); }
 
+  // zone grisée : pas de chiffre, seulement l'avertissement
+  const CORPS_ZONE = `<div class="tt-classe"><i style="background:${Z_COUL}"></i><b>Marge d'erreur trop élevée</b></div>
+           <small>Dans cette zone, la marge d'erreur de la détection des coupes rases est trop grande pour publier un chiffre fiable.</small>`;
   function contenuBulle(i) {
+    if (COMMUNAL) {
+      const t = window.TAUX_COMMUNES[COM[i]] || [0, 0, 0], coupe = t[0] / 100, boise = t[1] / 100, k = CL_C[i];
+      const lieu = `<b>${window.COMMUNES_CARTE.noms[COM[i]]}</b> · ${H.deps[COM[i].slice(0, 2)] || ""}`;
+      let corps;
+      if (!(boise > 0)) corps = `<div class="tt-classe"><i style="background:${GRIS}"></i><b>Pas de forêt</b></div>
+           <small>Aucune surface boisée dans cette commune : taux non calculé.</small>`;
+      else if (coupe === 0) corps = `<div class="tt-classe"><i style="background:${ZERO}"></i><b>${ZERO_ETIQ}</b></div>
+           <div>entre 2019 et 2025</div><small>${ha(boise)} ha de forêt</small>`;
+      else corps = `<div class="tt-classe"><i style="background:${couleurClasse(k)}"></i><span class="tt-chiffre">${pourcent(TX_C[i])} %</span></div>
+           <div>de la forêt en coupes rases entre 2019 et 2025</div>
+           <small>${ha(coupe)} ha coupés sur ${ha(boise)} ha de forêt</small>`;
+      if (ERR_C[i] && zonesVisibles) corps = CORPS_ZONE;
+      return `<div class="lieu">${lieu}</div>${corps}`;
+    }
     const coupe = H.coupe[i] / 100, boise = H.boise[i] / 100, terre = H.terre[i] / 10;
     const c = communeProche(CX[i], CY[i]);
     const lieu = (c ? "Près de " + c.n + " · " : "") + (H.deps[H.dep[i]] || "");
@@ -548,9 +649,8 @@
            <div>du territoire en coupes rases entre 2019 et 2025</div>
            <small>${ha(coupe)} ha coupés sur ${ha(terre)} ha (hexagone de 2 km)</small>`;
     }
-    const z = EN_ZONE[i] && zonesVisibles
-      ? `<div class="tt-zone">Zone où la marge d'erreur de la détection est élevée : chiffre à prendre avec précaution.</div>` : "";
-    return `<div class="lieu">${lieu}</div>${corps}${z}`;
+    if (EN_ZONE[i] && zonesVisibles) corps = CORPS_ZONE;
+    return `<div class="lieu">${lieu}</div>${corps}`;
   }
   function placerBulle(u, v) {
     tt.hidden = false;
@@ -562,16 +662,43 @@
     if (y < 8) y = 8;
     tt.style.left = x + "px"; tt.style.top = y + "px";
   }
+  function mobProche(u, v) {   // point de mobilisation à moins de 12 px du pointeur (le plus proche)
+    if (!mobVisibles) return -1;
+    let best = -1, d = 144;
+    MOB.forEach((m, k) => { const [a, b] = versEcran(m.x, m.y), dd = (a - u) ** 2 + (b - v) ** 2; if (dd < d) { d = dd; best = k; } });
+    return best;
+  }
+  const echap = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function contenuMob(k) {
+    const m = MOB[k];
+    return `<div class="tt-mob"><div class="lieu">${echap(m.commune)} (${echap(m.dep)}) · ${echap(m.date)}</div>` +
+      `<b>${echap(m.titre)}</b><p>${echap(m.texte)}</p>` +
+      `<small>${m.source ? "Source : " + echap(m.source) + " ; Canopée" : "Source : Canopée"}</small></div>`;
+  }
   function survol(u, v, epingler) {
+    const k = mobProche(u, v);
+    if (k >= 0) {   // un point de mobilisation l'emporte sur l'hexagone dessous
+      if (survole >= 0) survole = -1;
+      if (k !== mobSurvole) mobSurvole = k;
+      rendre();
+      tt.innerHTML = contenuMob(k); placerBulle(u, v); epingle = !!epingler;
+      canvas.style.cursor = "pointer";
+      return;
+    }
+    if (mobSurvole >= 0) { mobSurvole = -1; rendre(); }
+    canvas.style.cursor = "";
     let i = trouver(u, v);
-    if (i >= 0 && masquees.has(CLASSES[mode][i]) && !(zonesVisibles && EN_ZONE[i])) i = -1;   // hexagone masqué depuis la légende : pas d'infobulle
+    if (i >= 0 && masquees.has(clAt(i)) && !(zonesVisibles && zoneAt(i))) i = -1;   // hexagone masqué depuis la légende : pas d'infobulle
     if (i !== survole) { survole = i; rendre(); }
     if (i < 0) { fermerBulle(); return; }
     tt.innerHTML = contenuBulle(i);
     placerBulle(u, v);
     epingle = !!epingler;
   }
-  function fermerBulle() { tt.hidden = true; epingle = false; if (survole >= 0) { survole = -1; rendre(); } }
+  function fermerBulle() {
+    tt.hidden = true; epingle = false;
+    if (survole >= 0 || mobSurvole >= 0) { survole = -1; mobSurvole = -1; rendre(); }
+  }
 
   // ---------- Zoom et déplacement ----------
   function zoomEn(f, u, v) {
@@ -638,7 +765,8 @@
     if (geste && geste.type === "glisser" && !geste.bouge && performance.now() - geste.t < 500) {
       // simple toucher / clic : infobulle épinglée (mobile) ou bascule (souris)
       if (e.pointerType === "mouse") survol(e.offsetX, e.offsetY, false);
-      else if (epingle && trouver(e.offsetX, e.offsetY) === survole) fermerBulle();
+      else if (epingle && (mobSurvole >= 0 ? mobProche(e.offsetX, e.offsetY) === mobSurvole
+                                          : mobProche(e.offsetX, e.offsetY) < 0 && trouver(e.offsetX, e.offsetY) === survole)) fermerBulle();
       else survol(e.offsetX, e.offsetY, true);
     }
     if (pointeurs.size === 1 && geste && geste.type === "pincer") {
@@ -717,6 +845,9 @@
       carreZone() + `<span>${Z_ETIQ}</span></button>`;
     // « Pas de forêt » retiré de la légende (2026-11-20) : ces hexagones restent transparents (on voit le satellite)
     h += '</div><div class="leg-barre" id="leg-barre"></div>';
+    if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
+      `<svg width="16" height="${HAUT_SVG}" viewBox="0 0 16 ${HAUT_SVG}" aria-hidden="true"><circle cx="8" cy="${LG.y + LG.h / 2}" r="5.5" fill="${MOB_COUL}" stroke="#fff" stroke-width="2"${mobVisibles ? "" : ' fill-opacity="0.25"'}/>` +
+      `<circle cx="8" cy="${LG.y + LG.h / 2}" r="6.6" fill="none" stroke="#000" stroke-width="0.6" stroke-opacity="0.35"/></svg><span>${MOB_ETIQ}</span></button></div>`;
     h += '<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces hexagones.</div>';
     $("leg-cases").innerHTML = h;
     // barre dessinée à la largeur réelle de son emplacement (traits nets, mêmes épaisseurs que les carrés)
@@ -725,6 +856,13 @@
   function basculerClasse(e) {
     const b = e.target.closest && e.target.closest("[data-k]");
     if (!b) return;
+    if (b.dataset.k === "m") {   // points des mobilisations
+      mobVisibles = !mobVisibles; if (!mobVisibles && mobSurvole >= 0) fermerBulle();
+      legende(); rendre();
+      const f = $("leg-cases").querySelector && $("leg-cases").querySelector('[data-k="m"]');
+      if (f && e.type === "keydown" && f.focus) f.focus();
+      return;
+    }
     if (b.dataset.k === "z") {   // zones d'erreur : gris ↔ vraies couleurs
       zonesVisibles = !zonesVisibles; legende(); rendre();
       if (!tt.hidden && survole >= 0) tt.innerHTML = contenuBulle(survole);
@@ -840,8 +978,8 @@
     q.value = c.n; effacer.hidden = false; res.hidden = true; q.blur(); fermerBulle();
     selection = { c, chemin: null, bb: null };
     try {
-      await chargerDepartement(c.c.slice(0, 2));
-      const g = (window.GEO_COMMUNES || {})[c.c];
+      const g = COMMUNAL && window.COMMUNES_CARTE.geo[c.c] ? window.COMMUNES_CARTE.geo[c.c]
+        : (await chargerDepartement(c.c.slice(0, 2)), (window.GEO_COMMUNES || {})[c.c]);
       if (g) { const { p, bb } = cheminCommune(g); selection.chemin = p; selection.bb = bb; }
     } catch (err) { console.warn(err); }
     // cadrage : la commune occupe environ la moitié de la carte (au moins 12 km de large)
@@ -869,7 +1007,7 @@
       if (c) choisir(c);
     }, e => console.warn(e));
   }
-  window.CARTE = { masquees, EN_ZONE, zones: () => zonesVisibles, legende, rasteriser, CLASSES, chargerCommunes, contraindre, vueFrance, chercher, choisir, trouver, contenuBulle, vue: () => vue, selection: () => selection };  // pour les tests
+  window.CARTE = { COMMUNAL, COM, CL_C, peindreCommunes, MOB, mobProche, contenuMob, survol, masquees, EN_ZONE, zones: () => zonesVisibles, legende, rasteriser, CLASSES, chargerCommunes, contraindre, vueFrance, chercher, choisir, trouver, contenuBulle, vue: () => vue, selection: () => selection };  // pour les tests
   // Redimensionnement : on ne réagit qu'à un vrai changement de taille, et une seule fois par image
   // (sinon boucle possible : hauteur du cadre -> barre de défilement -> largeur -> hauteur…).
   let tailleVue = "", redim = 0;

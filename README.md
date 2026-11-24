@@ -79,12 +79,20 @@ Les coupes rases en France métropolitaine entre 2019 et 2025 (taux de coupes ra
 forêt ou du territoire, sur fond satellite ; recherche de commune).
 
 - Page : https://vert-le-media.github.io/cartes/coupes-rases/
+- Variante par commune (sans hexagones) : https://vert-le-media.github.io/cartes/coupes-rases/communes.html
+  (plus lourde : ~4 Mo de contours communaux compressés)
 - Sources : Canopée ; IGN (BD Forêt v2, orthophotos de la Géoplateforme chargées en direct).
 - Fichiers générés dans le projet `2026-11_canope-coupes-rases` (dépôt privé `vert-le-media/coupes-rases`) par
-  `06_donnees_carte_interactive.R` et `08_zones_erreur.R`, puis copiés par `09_copier_depot_github.R` : ne pas les modifier ici.
+  `06_donnees_carte_interactive.R`, `08_zones_erreur.R`, `10_taux_par_commune.R` et `11_contours_communes_carte.R`, puis copiés par `09_copier_depot_github.R` : ne pas les modifier ici.
 
 Code d'intégration (bloc HTML personnalisé dans WordPress ; ajouter le script de hauteur ci-dessus s'il n'est pas déjà dans l'article) :
 
 ```html
 <iframe src="https://vert-le-media.github.io/cartes/coupes-rases/" title="Carte des coupes rases en France entre 2019 et 2025" width="100%" height="950" style="border:0; max-width:100%;" loading="lazy"> </iframe>
+```
+
+Variante par commune :
+
+```html
+<iframe src="https://vert-le-media.github.io/cartes/coupes-rases/communes.html" title="Carte des coupes rases par commune en France entre 2019 et 2025" width="100%" height="950" style="border:0; max-width:100%;" loading="lazy"> </iframe>
 ```
