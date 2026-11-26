@@ -26,11 +26,12 @@
   // aucun seuil de surface boisée (choix de Sébastien, 2026-11-20) : taux calculé dès qu'il y a de la forêt
   // zoom maximal : 0,3 px par mètre (≈ 3 m par pixel, un hexagone ≈ 600 px) ; 0,08 avant les polygones (2026-11-24)
   const S_MAX = 0.3;
-  // Fond satellite : orthophotos IGN (BD Ortho, Géoplateforme), service WMS servi directement en Lambert-93,
-  // découpé en tuiles de 512 px sur une pyramide de résolutions 2^k m/px (k entier).
-  const WMS = "https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap" +
-              "&LAYERS=ORTHOIMAGERY.ORTHOPHOTOS&STYLES=&CRS=EPSG:2154&FORMAT=image/jpeg&WIDTH=512&HEIGHT=512&BBOX=";
-  const TUILE = 512, OY = 6000000, MER = "#173f55";   // MER : bleu de la Méditerranée sur les images IGN
+  // Fond satellite (2026-11-26) : orthophotos IGN en tuiles toutes prêtes (WMTS de la Géoplateforme, projection
+  // Web Mercator « PM », 256 px, niveaux 0 à 19), redressées en Lambert-93 dans le navigateur (voir dessinerSatellite).
+  // Avant : WMS calculé à la demande en Lambert-93, 12 à 26 s par image le 2026-11-26 ; WMTS : 0,1 à 1,5 s.
+  const WMTS = "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS" +
+               "&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg";
+  const Z_MAX_SAT = 19, MER = "#0a3b59";   // MER : bleu uni de la mer sur ces images (fond pendant le chargement)
   // Opacité des hexagones sur le satellite (2026-11-20 : plus transparent pour laisser voir les photos) :
   // classes claires (aucune coupe, 0-2 %, 2-4 %), qui couvrent l'essentiel du territoire, plus transparentes
   // 2026-11-26 (demande de Sébastien) : « aucune coupe détectée » transparente (retirée de la légende, gardée dans
@@ -343,7 +344,9 @@
       // la France, centrée) : sinon elle montrerait l'Italie et la mer hors de la mosaïque satellite (bande unie).
       const autres = hab ? hab.getBoundingClientRect().height - cadre.getBoundingClientRect().height : 0;
       const dispoH = ih - autres - 2 * 8 - 4;   // 8 : marge du body ; 4 : sécurité
-      if (dispoH < prop) { h = Math.max(300, dispoH); larg = Math.min(dispoW, (h - haut - bas) / ratio + 2 * m); }
+      // 2026-11-26 (demande de Sébastien) : la carte garde toute la largeur sous la recherche (avant : rétrécie et
+      // centrée) ; le fond WMTS couvre aussi l'étranger et la mer, plus de bande unie sur les côtés
+      if (dispoH < prop) h = Math.max(300, dispoH);
     } else h = Math.min(prop, ih * 0.85);   // mobile : la page peut défiler
     h = Math.round(h);
     // recalcul seulement si la largeur disponible (≥ 20 px) ou la hauteur de fenêtre (≥ 10 px) a vraiment changé,
@@ -382,59 +385,95 @@
   const versEcran = (X, Y) => [W / 2 + (X - vue.cx) * vue.s, Hh / 2 - (Y - vue.cy) * vue.s];
 
   // ---------- Dessin ----------
-  // ---------- Fond satellite (tuiles WMS en Lambert-93) ----------
-  const TUILES = new Map();   // "k/i/j" -> { img, ok }
-  function tuile(k, i, j, demander) {
-    const cle = k + "/" + i + "/" + j;
+  // ---------- Fond satellite (tuiles WMTS Web Mercator redressées en Lambert-93) ----------
+  // Lambert-93 (RGF93, ellipsoïde GRS80) <-> longitude / latitude en degrés (formules IGN, NTG 71)
+  const L93 = (() => {
+    const e = 0.0818191910428158, n = 0.725607765053267, C = 11754255.426096, XS = 700000, YS = 12655612.049876;
+    const L0 = 3 * Math.PI / 180, RAD = Math.PI / 180;
+    function directe(lon, lat) {
+      const s = Math.sin(lat * RAD), L = 0.5 * Math.log((1 + s) / (1 - s)) - e / 2 * Math.log((1 + e * s) / (1 - e * s));
+      const R = C * Math.exp(-n * L), g = n * (lon * RAD - L0);
+      return [XS + R * Math.sin(g), YS - R * Math.cos(g)];
+    }
+    function inverse(X, Y) {
+      const dx = X - XS, dy = YS - Y, R = Math.hypot(dx, dy), g = Math.atan2(dx, dy), L = -Math.log(R / C) / n;
+      let p = 2 * Math.atan(Math.exp(L)) - Math.PI / 2;
+      for (let k = 0; k < 6; k++) { const s = e * Math.sin(p); p = 2 * Math.atan(Math.pow((1 + s) / (1 - s), e / 2) * Math.exp(L)) - Math.PI / 2; }
+      return [(L0 + g / n) / RAD, p / RAD];
+    }
+    return { directe, inverse };
+  })();
+  const latTuile = t => Math.atan(Math.sinh(Math.PI * (1 - 2 * t))) * 180 / Math.PI;   // t : ordonnée de tuile / 2^z
+  const yTuile = lat => (1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2;
+  const TUILES = new Map();   // "z/x/y" -> { img, ok }
+  function tuile(z, x, y, demander) {
+    const cle = z + "/" + x + "/" + y;
     let t = TUILES.get(cle);
-    // tuile en échec (erreur ou refus passager du serveur IGN) : redemandée après 1, 2, 4… s, 5 fois au plus ;
-    // sans ça, la tuile plus grossière restait affichée en carré flou et plus vert (2026-11-26)
+    // tuile en échec (erreur ou refus passager du serveur IGN) : redemandée après 1, 2, 4… s, 5 fois au plus
     if (t && t.echec && demander && t.essais < 5 && performance.now() - t.echec > 1000 * 2 ** (t.essais - 1)) t = null;
     if (!t && demander) {
-      const T = TUILE * 2 ** k, img = new Image(), avant = TUILES.get(cle);
+      const img = new Image(), avant = TUILES.get(cle);
       t = { img, ok: false, essais: avant ? avant.essais : 0 };
-      img.crossOrigin = "anonymous";   // le serveur IGN autorise la lecture des pixels (CORS)
-      // blanc rendu transparent seulement aux résolutions fines (k ≤ 4, là où la mer est blanche) : aux niveaux
-      // grossiers, ça trouait la neige des Alpes (points bleus du fond « mer »)
-      img.onload = () => { if (k < K_MER) videBlanc(t); t.ok = true; rendre(); };
+      img.crossOrigin = "anonymous";
+      img.onload = () => { t.ok = true; rendre(); };
       img.onerror = () => { t.echec = performance.now(); t.essais++; setTimeout(rendre, 1000 * 2 ** (t.essais - 1) + 50); };
-      img.src = WMS + [i * T, OY + j * T, (i + 1) * T, OY + (j + 1) * T].join(",");
+      img.src = WMTS + "&TILEMATRIX=" + z + "&TILEROW=" + y + "&TILECOL=" + x;
       TUILES.set(cle, t);
-      if (TUILES.size > 300) TUILES.delete(TUILES.keys().next().value);   // cache borné
+      if (TUILES.size > 600) TUILES.delete(TUILES.keys().next().value);   // cache borné
     }
     return t && t.ok ? t : null;
   }
-  // Au large, la BD Ortho n'a pas d'image fine : le serveur renvoie du blanc pur (aux résolutions de 16 m/px
-  // et plus fines ; plus grossier, une autre mosaïque couvre la mer). On rend ces pixels blancs transparents
-  // pour laisser voir dessous l'image moins détaillée (niveau 5, demandé en plus quand on zoome fort).
-  const K_MER = 5;
-  function videBlanc(t) {
-    try {
-      const cv = document.createElement("canvas"); cv.width = cv.height = TUILE;
-      const c = cv.getContext("2d"); c.drawImage(t.img, 0, 0);
-      const d = c.getImageData(0, 0, TUILE, TUILE), a = d.data;
-      let n = 0;
-      for (let p = 0; p < a.length; p += 4) if (a[p] >= 250 && a[p + 1] >= 250 && a[p + 2] >= 250) { a[p + 3] = 0; n++; }
-      if (n === TUILE * TUILE) t.vide = true;            // tuile entièrement vide : on ne la dessine pas
-      else if (n > 2000) { c.putImageData(d, 0, 0); t.img = cv; }   // côte : on garde la version trouée
-    } catch (e) { /* lecture des pixels refusée : on garde l'image telle quelle */ }
+  // Une tuile Web Mercator est découpée en n × n carrés ; chaque carré est posé avec la transformation affine qui
+  // relie ses 4 coins (projetés en Lambert-93 puis à l'écran). Plus la tuile couvre de terrain, plus on la découpe
+  // (rotation des méridiens et variation d'échelle de Mercator) : écart à la vraie projection < 0,5 px.
+  // Chaque carré est agrandi d'un pixel pour ne pas laisser de joints.
+  function peindreTuile(img, z, x, y, n) {
+    const N = 2 ** z, pas = 256 / n, m = n + 1, P = new Float64Array(2 * m * m), Wp = W * DPR, Hp = Hh * DPR;
+    for (let j = 0; j <= n; j++) {
+      const lat = latTuile((y + j / n) / N);
+      for (let i = 0; i <= n; i++) {
+        const [X, Y] = L93.directe((x + i / n) / N * 360 - 180, lat), k = 2 * (j * m + i);
+        P[k] = (W / 2 + (X - vue.cx) * vue.s) * DPR; P[k + 1] = (Hh / 2 - (Y - vue.cy) * vue.s) * DPR;
+      }
+    }
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const a = 2 * (j * m + i), b = a + 2, c = a + 2 * m, d = c + 2;
+      const xmin = Math.min(P[a], P[b], P[c], P[d]), xmax = Math.max(P[a], P[b], P[c], P[d]);
+      const ymin = Math.min(P[a + 1], P[b + 1], P[c + 1], P[d + 1]), ymax = Math.max(P[a + 1], P[b + 1], P[c + 1], P[d + 1]);
+      if (xmax < 0 || ymax < 0 || xmin > Wp || ymin > Hp) continue;
+      let ux = (P[b] - P[a] + P[d] - P[c]) / 2 / pas, uy = (P[b + 1] - P[a + 1] + P[d + 1] - P[c + 1]) / 2 / pas;
+      let vx = (P[c] - P[a] + P[d] - P[b]) / 2 / pas, vy = (P[c + 1] - P[a + 1] + P[d + 1] - P[b + 1]) / 2 / pas;
+      const fu = 1 + 1 / Math.max(1, Math.hypot(ux, uy) * pas), fv = 1 + 1 / Math.max(1, Math.hypot(vx, vy) * pas);
+      ux *= fu; uy *= fu; vx *= fv; vy *= fv;
+      const cx = (P[a] + P[b] + P[c] + P[d]) / 4, cy = (P[a + 1] + P[b + 1] + P[c + 1] + P[d + 1]) / 4;
+      ctx.setTransform(ux, uy, vx, vy, cx - (ux + vx) * pas / 2, cy - (uy + vy) * pas / 2);
+      ctx.drawImage(img, i * pas, j * pas, pas, pas, 0, 0, pas, pas);
+    }
   }
   function dessinerSatellite() {
-    // niveau dont la résolution est la plus proche de celle de l'écran (pixels physiques)
-    const kv = Math.max(0, Math.min(12, Math.round(Math.log2(1 / (vue.s * DPR)))));
-    const [x0, y1] = versMonde(0, 0), [x1, y0] = versMonde(W, Hh);
-    // niveaux plus grossiers déjà chargés d'abord (évite les trous pendant le chargement), puis le niveau visé
-    for (let k = Math.min(12, Math.max(kv + 4, K_MER)); k >= kv; k--) {
-      const T = TUILE * 2 ** k;
-      for (let i = Math.floor(x0 / T); i <= Math.floor(x1 / T); i++)
-        for (let j = Math.floor((y0 - OY) / T); j <= Math.floor((y1 - OY) / T); j++) {
-          const t = tuile(k, i, j, !vol && (k === kv || (kv < K_MER && k === K_MER)));
-          if (!t || t.vide) continue;
-          const [u0, v0] = versEcran(i * T, OY + (j + 1) * T), [u1, v1] = versEcran((i + 1) * T, OY + j * T);
-          const a = Math.floor(u0 * DPR), b = Math.floor(v0 * DPR);
-          ctx.drawImage(t.img, a, b, Math.ceil(u1 * DPR) - a, Math.ceil(v1 * DPR) - b);
-        }
+    // niveau dont la résolution est la plus proche de celle de l'écran (pixels physiques), au centre de la vue
+    const lat0 = L93.inverse(vue.cx, vue.cy)[1];
+    const zv = Math.max(0, Math.min(Z_MAX_SAT, Math.round(Math.log2(156543.034 * Math.cos(lat0 * Math.PI / 180) * vue.s * DPR))));
+    // emprise de l'écran en longitude / latitude (bords échantillonnés : les méridiens ne sont pas verticaux)
+    let lo0 = Infinity, lo1 = -Infinity, la0 = Infinity, la1 = -Infinity;
+    for (let a = 0; a <= 4; a++) for (const [u, v] of [[a * W / 4, 0], [a * W / 4, Hh], [0, a * Hh / 4], [W, a * Hh / 4]]) {
+      const [X, Y] = versMonde(u, v), [lo, la] = L93.inverse(X, Y);
+      if (lo < lo0) lo0 = lo; if (lo > lo1) lo1 = lo; if (la < la0) la0 = la; if (la > la1) la1 = la;
     }
+    ctx.save(); ctx.imageSmoothingEnabled = true;
+    // niveaux plus grossiers déjà chargés d'abord (évite les trous pendant le chargement), puis le niveau visé
+    for (let z = Math.max(0, zv - 4); z <= zv; z++) {
+      // découpage : selon le niveau, et plus fin pour les tuiles plus grossières, agrandies à l'écran
+      const N = 2 ** z, n = Math.min(16, (z <= 5 ? 8 : z <= 7 ? 4 : z <= 9 ? 2 : 1) * 2 ** (zv - z));
+      const x0 = Math.max(0, Math.floor((lo0 + 180) / 360 * N)), x1 = Math.min(N - 1, Math.floor((lo1 + 180) / 360 * N));
+      const y0 = Math.max(0, Math.floor(yTuile(la1) * N)), y1 = Math.min(N - 1, Math.floor(yTuile(la0) * N));
+      if ((x1 - x0 + 1) * (y1 - y0 + 1) > 300) continue;   // sécurité
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const t = tuile(z, x, y, !vol && z === zv);
+        if (t) peindreTuile(t.img, z, x, y, n);
+      }
+    }
+    ctx.restore(); ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   // ---------- Couche des hexagones (optimisée pour les téléphones modestes) ----------
@@ -979,7 +1018,7 @@
     if (POLY) h += `<div class="leg-poly"><button type="button" class="leg-item" data-k="p" aria-pressed="${polyVisibles}"${polyVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
       carre(ROUGE, polyVisibles ? 0.85 : 0.12) + `<span>${ROUGE_ETIQ}</span></button></div>`;
     if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / masquer">` +
-      `<img src="picto-contestation.svg" width="17" height="${Math.round(17 * PICTO_RATIO)}" alt=""${mobVisibles ? "" : ' style="opacity:.45"'}><span>${mobVisibles ? MOB_ETIQ : "Afficher les mobilisations contre des coupes rases"}</span></button></div>`;
+      `<img src="picto-contestation.svg" width="17" height="${Math.round(17 * PICTO_RATIO)}" alt=""${mobVisibles ? "" : ' style="opacity:.45"'}><span>${mobVisibles ? MOB_ETIQ : "Cliquez pour afficher les mobilisations contre les coupes rases"}</span></button></div>`;
     h += `<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces ${COMMUNAL ? "communes" : "hexagones"}.</div>`;
     $("leg-cases").innerHTML = h;
     // barre dessinée à la largeur réelle de son emplacement (traits nets, mêmes épaisseurs que les carrés)
@@ -1146,7 +1185,7 @@
       if (c) choisir(c);
     }, e => console.warn(e));
   }
-  window.CARTE = { aller: v => { vue = contraindre(v); rendre(); }, POLY, CARREAUX, trouverPoly, contenuPoly, polyActif, carreauxDans, chargerCarreau, COMMUNAL, COM, CL_C, peindreCommunes, MOB, mobProche, contenuMob, survol, masquees, EN_ZONE, zones: () => zonesVisibles, legende, rasteriser, CLASSES, chargerCommunes, contraindre, vueFrance, chercher, choisir, trouver, contenuBulle, vue: () => vue, selection: () => selection };  // pour les tests
+  window.CARTE = { aller: v => { vue = contraindre(v); rendre(); }, L93, peindreTuile, dessinerSatellite, TUILES, POLY, CARREAUX, trouverPoly, contenuPoly, polyActif, carreauxDans, chargerCarreau, COMMUNAL, COM, CL_C, peindreCommunes, MOB, mobProche, contenuMob, survol, masquees, EN_ZONE, zones: () => zonesVisibles, legende, rasteriser, CLASSES, chargerCommunes, contraindre, vueFrance, chercher, choisir, trouver, contenuBulle, vue: () => vue, selection: () => selection };  // pour les tests
   // Redimensionnement : on ne réagit qu'à un vrai changement de taille, et une seule fois par image
   // (sinon boucle possible : hauteur du cadre -> barre de défilement -> largeur -> hauteur…).
   let tailleVue = "", redim = 0;
