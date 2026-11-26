@@ -33,9 +33,11 @@ body { margin: 0; padding: 8px; background: #fff; color: #000; font: 13px/1.45 v
 .leg-cases { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 20px; }
 .leg-barre { order: 1; flex: 1 1 0; min-width: 240px; }
 .leg-gauche { order: 2; flex: none; display: flex; flex-wrap: nowrap; gap: 4px 18px; }   /* carrés alignés sur la barre (mêmes 21 px de haut) */
-.leg-mob { order: 3; flex-basis: 100%; }   /* mobilisations : ligne à part, sous la barre et les carrés */
-.leg-poly { order: 3; flex-basis: 100%; }  /* polygones des coupes (2026-11-24) : ligne à part, sous les mobilisations */
-.leg-astuce { order: 4; flex-basis: 100%; }
+.leg-poly { order: 3; flex-basis: 100%; }  /* polygones des coupes (2026-11-24) : ligne à part, sous la barre */
+.leg-mob { order: 4; flex-basis: 100%; }   /* mobilisations : sous les coupes (2026-11-26) */
+.leg-mob .leg-item[data-masquee] span { text-decoration: none; opacity: .75; }   /* masquées à l'ouverture : pas de rature */
+.leg-mob img { flex: none; display: block; }
+.leg-astuce { order: 5; flex-basis: 100%; }
 .leg-item { display: flex; align-items: center; gap: 6px; height: 21px; font: inherit; font-size: 12.5px; line-height: 1; color: #000;
             border: 0; background: none; padding: 0; text-align: left; }
 .leg-item svg { flex: none; display: block; }
@@ -53,11 +55,15 @@ button.leg-item:hover rect:last-child { stroke-width: 2; }
 .tt-classe i { flex: none; width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, .12); }
 
 /* ---------- Recherche ---------- */
-.recherche { position: relative; margin: 0 0 8px; }
+/* mise en valeur (2026-11-26, demande de Sébastien) : champ plus haut, bord vert foncé de 2 px, loupe, invite en gras */
+.recherche { position: relative; margin: 2px 0 10px; }
 .recherche input {
-  width: 100%; padding: 8px 34px 8px 10px; border: 1px solid var(--bord); border-radius: 6px;
-  font: inherit; color: var(--texte); background: var(--fond);
+  width: 100%; height: 44px; padding: 0 38px 0 40px; border: 2px solid var(--vert); border-radius: 8px;
+  font: 500 15px var(--police); color: var(--texte); background: #fff; box-shadow: 0 2px 6px rgba(0, 67, 82, .12);
 }
+.recherche input::placeholder { color: var(--vert); opacity: .8; font-weight: 600; }
+.recherche input:focus { outline: none; box-shadow: 0 0 0 3px rgba(0, 67, 82, .22); }
+.loupe { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; pointer-events: none; color: var(--vert); }
 .recherche input::-webkit-search-cancel-button { display: none; }
 .effacer {
   position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px;
@@ -89,6 +95,10 @@ canvas.drag { cursor: grabbing; }
   border-radius: 6px; font: 600 18px var(--police); cursor: pointer;
 }
 .zoom button:hover { background: var(--survol); }
+.zoom button svg { display: block; margin: auto; }
+/* logo blanc de Vert dans le coin bas droit de la carte (2026-11-26) */
+.logo-carte { position: absolute; right: 10px; bottom: 10px; width: 64px; height: auto; pointer-events: none;
+              filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55)); }
 
 .tooltip {
   position: absolute; pointer-events: none; background: var(--fond); color: var(--texte); z-index: 5;
@@ -107,22 +117,22 @@ canvas.drag { cursor: grabbing; }
 .tooltip:has(.tt-enjeux) { max-width: min(300px, calc(100% - 16px)); }
 .tt-zone { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dfe5e6; color: var(--doux); font-size: 11.5px; line-height: 1.35; }
 
+/* ---------- Plein écran (2026-11-26) ----------
+   API Fullscreen sur l'habillage (titre, légende, recherche et carte restent visibles) ; sans cette API (iPhone),
+   repli en CSS (.plein : habillage fixé sur toute la fenêtre). La hauteur de la carte est recalculée par carte.js. */
+.habillage:fullscreen, .habillage.plein { max-width: none; width: 100%; height: 100%; border: 0; border-radius: 0; overflow: auto; }
+.habillage.plein { position: fixed; inset: 0; z-index: 1000; }
+.habillage:fullscreen .cadre, .habillage.plein .cadre { flex: 1 1 auto; min-height: 240px; height: auto !important; width: auto !important; align-self: stretch !important; }
+.habillage:fullscreen { background: #fff; padding: 14px 20px 10px; }
+
 .chargement {
   position: absolute; inset: 0; display: grid; place-items: center; color: var(--doux);
   background: var(--carte); font-size: 13px;
 }
 
-/* ---------- Pied : source + logo, méthodologie ---------- */
+/* ---------- Pied : sources et signature (logo sur la carte ; méthodologie retirée le 2026-11-26) ---------- */
 .hab-pied { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .hab-source { font-size: 12px; font-weight: 300; line-height: 1.35; color: #000; }   /* source en Light */
-.hab-logo { flex: none; display: block; width: 72px; height: auto; }
-.hab-methodo {
-  margin-top: 10px; border: 1px solid #dfe5e6; border-radius: 4px; background: #f6f7f7;
-  font-size: 12px; line-height: 1.45; color: #000;
-}
-.hab-methodo > summary { cursor: pointer; padding: 6px 10px; font-weight: 600; font-size: 13px; }
-.hab-methodo-corps { padding: 0 10px 8px; }
-.hab-methodo-corps p { margin: 0 0 6px; }
 .chrono { font-size: 11px; color: var(--doux); margin: 6px 0 0; }
 
 @media (max-width: 700px) {
@@ -133,10 +143,10 @@ canvas.drag { cursor: grabbing; }
 @media (max-width: 760px) {
   body { padding: 0; }
   .habillage { padding: 10px 10px 8px; }
-  .hab-logo { width: 60px; }
   /* recherche : invite plus petite ; la saisie reste à 16 px, sinon iOS zoome la page au toucher */
   .recherche input { font-size: 16px; }
-  .recherche input::placeholder { font-size: 13px; }
+  .recherche input::placeholder { font-size: 14px; }
+  .logo-carte { width: 52px; right: 8px; bottom: 8px; }
 }
 @media (max-width: 520px) {
   .leg-gauche { gap: 4px 16px; }

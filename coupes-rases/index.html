@@ -14,7 +14,7 @@
 <!-- Carte interactive des coupes rases 2019-2025. Données : donnees/*.js, produites par
      06_scripts/06_donnees_carte_interactive.R. S'ouvre par double-clic (aucun serveur nécessaire).
      Habillage repris de la carte des data centers (99_Archives/2026-10_data-centers) : cadre blanc, titre,
-     légende au-dessus de la carte, recherche, carte, sources + logo, méthodologie repliée. -->
+     légende au-dessus de la carte, recherche, carte, sources (logo sur la carte ; encart méthodologie retiré le 2026-11-26). -->
 </head>
 <body>
 <div class="habillage">
@@ -28,6 +28,7 @@
   </div>
 
   <div class="recherche">
+    <svg class="loupe" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M13 13l5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
     <input id="q" type="search" placeholder="Cherchez votre commune" autocomplete="off"
            aria-label="Cherchez votre commune" role="combobox" aria-expanded="false" aria-controls="res">
     <button id="effacer" type="button" class="effacer" aria-label="Effacer la recherche" hidden>×</button>
@@ -40,22 +41,17 @@
       <button id="z-plus" type="button" title="Zoomer" aria-label="Zoomer">+</button>
       <button id="z-moins" type="button" title="Dézoomer" aria-label="Dézoomer">−</button>
       <button id="z-reset" type="button" title="Vue d'ensemble" aria-label="Vue d'ensemble">⤢</button>
+      <button id="plein" type="button" title="Plein écran" aria-label="Plein écran" aria-pressed="false"></button>
     </div>
+    <img class="logo-carte" src="logo-vert-blanc.png" alt="Vert">
     <div class="tooltip" id="tt" hidden></div>
     <div class="chargement" id="chg">Chargement…</div>
   </div>
 
   <footer class="hab-pied">
-    <span class="hab-source">Sources&nbsp;: Canopée (CC BY-NC-ND)&nbsp;; IGN&nbsp;; INPN · Infographie Sébastien Eid/Vert</span>
-    <img class="hab-logo" src="logo-vert.png" alt="Vert">
+    <span class="hab-source">Sources&nbsp;: Canopée (CC BY-NC-ND)&nbsp;; IGN (BD Forêt, photos aériennes)&nbsp;; INPN&nbsp;; EFFIS/Copernicus<br>Infographie&nbsp;: Sébastien Eid/Vert</span>
   </footer>
 
-  <details class="hab-methodo">
-    <summary>Méthodologie</summary>
-    <div class="hab-methodo-corps">
-      <!-- à rédiger par Sébastien -->
-    </div>
-  </details>
 
 </div>
 

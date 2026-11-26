@@ -204,7 +204,11 @@
   let zonesVisibles = true;
   // Mobilisations contre des coupes rases (2026-11-23, texte de Canopée) : un point au centre de la commune
   const MOB = window.MOBILISATIONS || [], MOB_COUL = "#004352", MOB_ETIQ = "Mobilisation contre une coupe rase";
-  let mobVisibles = true, mobSurvole = -1;
+  // 2026-11-26 (demande de Sébastien) : picto « contestation » de la carte des data centers à la place de la pastille,
+  // points masqués à l'ouverture (on les affiche depuis la légende)
+  let mobVisibles = false, mobSurvole = -1;
+  const PICTO_MOB = new Image(); PICTO_MOB.onload = () => rendre(); PICTO_MOB.src = "picto-contestation.svg";
+  const PICTO_RATIO = 10.31 / 9.39, PICTO_CY = 0.464;   // hauteur / largeur du picto ; centre du disque (part de la hauteur)
   // Polygones des coupes rases (2026-11-24) : à partir de S_POLY px/m (≈ 40 m par pixel), les carreaux de 20 km qui
   // touchent l'écran sont chargés (script JSONP, marche aussi en local) et peints par année par-dessus les
   // hexagones / communes, alors estompés. Toutes en rouge de la charte (2026-11-25, demande de Sébastien ; avant :
@@ -313,6 +317,10 @@
   // marges autour de la France, en px : côtés et haut ; en bas, 8 px seulement pour ne jamais passer sous la limite
   // sud de la mosaïque satellite IGN (Y ≈ 6 004 000, 42 km sous la pointe de la Corse) — la légende est hors carte
   const marges = () => { const m = W < 520 ? 14 : 20; return { m, haut: m, bas: 8 }; };
+  function estPlein() {
+    const h = document.querySelector(".habillage");
+    return !!(document.fullscreenElement || document.webkitFullscreenElement) || !!(h && h.classList && h.classList.contains("plein"));
+  }
   function ajusterTaille() {
     const hab = document.querySelector(".habillage");
     // largeur disponible pour la carte (contenu de l'habillage), indépendante de la largeur actuelle du cadre
@@ -330,7 +338,7 @@
     const ih = dansIframe ? Math.max(500, ((window.screen && screen.availHeight) || 900) - 110) : (window.innerHeight || 900), prop = (dispoW - 2 * m) * ratio + haut + bas;
     let h = prop, larg = null;
     if ((window.innerWidth || 1000) > 760) {
-      // ordinateur : tout l'habillage (titre, légende, recherche, carte, sources, « Méthodologie » replié) tient dans
+      // ordinateur : tout l'habillage (titre, légende, recherche, carte, sources) tient dans
       // la fenêtre / l'iframe. Si la place manque en hauteur, la carte rapetisse dans les DEUX sens (proportions de
       // la France, centrée) : sinon elle montrerait l'Italie et la mer hors de la mosaïque satellite (bande unie).
       const autres = hab ? hab.getBoundingClientRect().height - cadre.getBoundingClientRect().height : 0;
@@ -341,7 +349,9 @@
     // recalcul seulement si la largeur disponible (≥ 20 px) ou la hauteur de fenêtre (≥ 10 px) a vraiment changé,
     // ou si on le force (police chargée) : pas d'oscillation
     const a = ajusterTaille;
-    if (a.force || !a.w || Math.abs(dispoW - a.w) >= 20 || Math.abs(ih - a.ih) >= 10) {
+    if (estPlein()) {   // plein écran : la carte prend toute la place restante (CSS, flex), quelle que soit la forme
+      cadre.style.height = cadre.style.width = cadre.style.alignSelf = ""; a.w = 0;
+    } else if (a.force || !a.w || Math.abs(dispoW - a.w) >= 20 || Math.abs(ih - a.ih) >= 10) {
       cadre.style.height = h + "px";
       cadre.style.width = larg ? Math.round(larg) + "px" : "";
       cadre.style.alignSelf = larg ? "center" : "";
@@ -350,7 +360,8 @@
     const r = cadre.getBoundingClientRect();
     W = r.width; Hh = r.height; DPR = window.devicePixelRatio || 1;
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hh * DPR);
-    sMin = Math.min((W - 2 * m) / (BB[2] - BB[0]), (Hh - haut - bas) / (BB[3] - BB[1]));
+    { const { m, haut, bas } = marges();   // (marges recalculées avec la largeur réelle du cadre)
+      sMin = Math.min((W - 2 * m) / (BB[2] - BB[0]), (Hh - haut - bas) / (BB[3] - BB[1])); }
   }
   const vueFrance = () => contraindre({ cx: (BB[0] + BB[2]) / 2, cy: (BB[1] + BB[3]) / 2, s: sMin });
   // Vue bloquée dans le cadre : pas de dézoom au-delà de la France entière, et la fenêtre ne sort jamais
@@ -615,14 +626,12 @@
         ctx.fillStyle = satellite ? "#ffffff" : "#1c2426"; ctx.fillText(t, u, v);
       }
     }
-    // points des mobilisations (pastille vert foncé cerclée de blanc ; plus grosse au survol)
-    if (mobVisibles) MOB.forEach((m, k) => {
+    // points des mobilisations : picto « contestation » centré sur la commune (plus gros au survol)
+    if (mobVisibles && PICTO_MOB.complete && PICTO_MOB.naturalWidth) MOB.forEach((m, k) => {
       const [u, v] = versEcran(m.x, m.y);
       if (u < -20 || u > W + 20 || v < -20 || v > Hh + 20) return;
-      const r = k === mobSurvole ? 8.5 : 6.5;
-      ctx.beginPath(); ctx.arc(u, v + 1, r + 2, 0, 2 * Math.PI); ctx.fillStyle = "rgba(0,0,0,0.3)"; ctx.fill();
-      ctx.beginPath(); ctx.arc(u, v, r, 0, 2 * Math.PI);
-      ctx.fillStyle = MOB_COUL; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = "#ffffff"; ctx.stroke();
+      const l = k === mobSurvole ? 30 : 24, h = l * PICTO_RATIO;
+      ctx.drawImage(PICTO_MOB, u - l / 2, v - h * PICTO_CY, l, h);
     });
     // étiquette de la commune sélectionnée
     if (selection && selection.bb) {
@@ -967,11 +976,10 @@
       carreZone() + `<span>${Z_ETIQ}</span></button>`;
     // « Pas de forêt » retiré de la légende (2026-11-20) : ces hexagones restent transparents (on voit le satellite)
     h += '</div><div class="leg-barre" id="leg-barre"></div>';
-    if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
-      `<svg width="16" height="${HAUT_SVG}" viewBox="0 0 16 ${HAUT_SVG}" aria-hidden="true"><circle cx="8" cy="${LG.y + LG.h / 2}" r="5.5" fill="${MOB_COUL}" stroke="#fff" stroke-width="2"${mobVisibles ? "" : ' fill-opacity="0.25"'}/>` +
-      `<circle cx="8" cy="${LG.y + LG.h / 2}" r="6.6" fill="none" stroke="#000" stroke-width="0.6" stroke-opacity="0.35"/></svg><span>${MOB_ETIQ}</span></button></div>`;
     if (POLY) h += `<div class="leg-poly"><button type="button" class="leg-item" data-k="p" aria-pressed="${polyVisibles}"${polyVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
       carre(ROUGE, polyVisibles ? 0.85 : 0.12) + `<span>${ROUGE_ETIQ}</span></button></div>`;
+    if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / masquer">` +
+      `<img src="picto-contestation.svg" width="17" height="${Math.round(17 * PICTO_RATIO)}" alt=""${mobVisibles ? "" : ' style="opacity:.45"'}><span>${mobVisibles ? MOB_ETIQ : "Afficher les mobilisations contre des coupes rases"}</span></button></div>`;
     h += `<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces ${COMMUNAL ? "communes" : "hexagones"}.</div>`;
     $("leg-cases").innerHTML = h;
     // barre dessinée à la largeur réelle de son emplacement (traits nets, mêmes épaisseurs que les carrés)
@@ -1156,6 +1164,44 @@
     });
   }
   new ResizeObserver(() => recadrer(false)).observe(cadre);
+
+  // ---------- Plein écran (2026-11-26, demande de Sébastien) ----------
+  // Bouton sous le zoom. API Fullscreen sur tout l'habillage (titre, légende, recherche, carte) ; si elle manque
+  // (iPhone) ou si l'iframe de l'article ne l'autorise pas (attribut allow="fullscreen" absent) : dans l'iframe, la
+  // carte s'ouvre dans un nouvel onglet en mode plein (?plein) ; hors iframe, l'habillage est fixé sur la fenêtre (CSS).
+  const HAB = document.querySelector(".habillage"), B_PLEIN = $("plein");
+  const ICONE_PLEIN = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICONE_SORTIR = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5v4h-4M14.5 5.5h-4v-4M10.5 14.5v-4h4M1.5 10.5h4v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function majPlein() {
+    const p = estPlein();
+    if (B_PLEIN) { B_PLEIN.innerHTML = p ? ICONE_SORTIR : ICONE_PLEIN; B_PLEIN.title = p ? "Quitter le plein écran" : "Plein écran";
+                   B_PLEIN.setAttribute("aria-label", B_PLEIN.title); B_PLEIN.setAttribute("aria-pressed", String(p)); }
+    recadrer(true);
+  }
+  function pleinCSS(oui) {
+    if (!HAB || !HAB.classList) return;
+    HAB.classList.toggle("plein", oui); document.body.style.overflow = oui ? "hidden" : ""; majPlein();
+  }
+  function repliPlein() {
+    if (window.parent !== window) window.open(location.href.replace(/[?#].*$/, "") + "?plein", "_blank");
+    else pleinCSS(true);
+  }
+  if (B_PLEIN) B_PLEIN.onclick = () => {
+    if (estPlein()) {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+      else pleinCSS(false);
+      return;
+    }
+    const req = HAB && (HAB.requestFullscreen || HAB.webkitRequestFullscreen);
+    if (req && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
+      try { const pr = req.call(HAB); if (pr && pr.catch) pr.catch(repliPlein); } catch (e) { repliPlein(); }
+    } else repliPlein();
+  };
+  document.addEventListener("fullscreenchange", majPlein);
+  document.addEventListener("webkitfullscreenchange", majPlein);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && HAB && HAB.classList && HAB.classList.contains("plein")) pleinCSS(false); });
+  if (/[?&]plein\b/.test(location.search) && window.parent === window) pleinCSS(true); else majPlein();
 
   // ---------- Hauteur automatique de l'iframe (comme les autres cartes du dépôt vert-le-media/cartes) ----------
   // La page envoie sa hauteur à l'article ({ type: "vert-carte-hauteur", h }) ; le script commun du README du dépôt
