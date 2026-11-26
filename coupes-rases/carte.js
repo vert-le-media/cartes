@@ -1,10 +1,14 @@
 /*
- * carte.js — Carte interactive des coupes rases 2019-2025 par hexagone de 2 km (France métropolitaine).
+ * carte.js — Carte interactive des coupes rases 2019-2025 par commune (France métropolitaine).
+ * Hexagones de 2 km abandonnés le 2026-11-25 (index.html = version communale) ; leur code reste, inactif sans
+ * window.COMMUNES_CARTE.
  * JS natif, sans dépendance. Tout est dessiné en Lambert-93 (mètres) dans un <canvas>.
  *   - deux modes : part de la surface boisée / part du territoire en coupes rases
  *   - survol (souris) ou toucher (mobile) : infobulle de l'hexagone
  *   - recherche de commune : le contour (chargé à la demande, donnees/communes/XX.js) n'apparaît
  *     qu'une fois la commune choisie ; elle est soulignée (contour) et la carte zoome dessus.
+ *   - en zoomant (S_POLY), polygones des coupes de Canopée par année, chargés par carreaux de 20 km
+ *     (donnees/coupes/i_j.js, index donnees/coupes-index.js, script 12_tuiles_coupes.R)
  * Données : window.HEX, window.CONTOURS, window.ZONES (zones d'erreur, 06_scripts/08_zones_erreur.R), window.COMMUNES (chargé à la demande) (06_scripts/06_donnees_carte_interactive.R).
  */
 (function () {
@@ -20,7 +24,8 @@
   const ZERO = "#9fb88a", ZERO_ETIQ = "Aucune coupe détectée";
   const couleurClasse = k => k === 8 ? ZERO : k === 7 ? GRIS : PAL[k];
   // aucun seuil de surface boisée (choix de Sébastien, 2026-11-20) : taux calculé dès qu'il y a de la forêt
-  const S_MAX = 0.08;             // zoom maximal : 0,08 px par mètre (un hexagone ≈ 160 px)
+  // zoom maximal : 0,3 px par mètre (≈ 3 m par pixel, un hexagone ≈ 600 px) ; 0,08 avant les polygones (2026-11-24)
+  const S_MAX = 0.3;
   // Fond satellite : orthophotos IGN (BD Ortho, Géoplateforme), service WMS servi directement en Lambert-93,
   // découpé en tuiles de 512 px sur une pyramide de résolutions 2^k m/px (k entier).
   const WMS = "https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap" +
@@ -28,7 +33,9 @@
   const TUILE = 512, OY = 6000000, MER = "#173f55";   // MER : bleu de la Méditerranée sur les images IGN
   // Opacité des hexagones sur le satellite (2026-11-20 : plus transparent pour laisser voir les photos) :
   // classes claires (aucune coupe, 0-2 %, 2-4 %), qui couvrent l'essentiel du territoire, plus transparentes
-  const opacite = k => k === 8 || k === 0 || k === 1 ? 0.45 : 0.62;
+  // 2026-11-26 (demande de Sébastien) : « aucune coupe détectée » transparente (retirée de la légende, gardée dans
+  // l'infobulle) ; 0-2 % éclaircie (0,45 → 0,3)
+  const opacite = k => k === 8 ? 0 : k === 0 ? 0.3 : k === 1 ? 0.45 : 0.62;
   const MODES = {
     foret: { titre: window.COMMUNES_CARTE ? "Taux de coupes rases en % de la forêt, par commune"
                                          : "Taux de coupes rases en % de la forêt, par maille de 2 km de diamètre", gris: "Pas de forêt" },
@@ -133,7 +140,7 @@
       if (BB_C[o + 2] < X0 || BB_C[o] > X1 || BB_C[o + 3] < Ybas || BB_C[o + 1] > Ytop) continue;
       vis.push(i);
       const k = zonesVisibles && ERR_C[i] ? 9 : CL_C[i];
-      if (k !== 9 && ((satellite && k === 7) || masquees.has(k))) continue;
+      if (k !== 9 && ((satellite && (k === 7 || k === 8)) || masquees.has(k))) continue;
       if (!parClasse.has(k)) parClasse.set(k, new Path2D());
       parClasse.get(k).addPath(CHEMIN_C[i]);
     }
@@ -198,6 +205,83 @@
   // Mobilisations contre des coupes rases (2026-11-23, texte de Canopée) : un point au centre de la commune
   const MOB = window.MOBILISATIONS || [], MOB_COUL = "#004352", MOB_ETIQ = "Mobilisation contre une coupe rase";
   let mobVisibles = true, mobSurvole = -1;
+  // Polygones des coupes rases (2026-11-24) : à partir de S_POLY px/m (≈ 40 m par pixel), les carreaux de 20 km qui
+  // touchent l'écran sont chargés (script JSONP, marche aussi en local) et peints par année par-dessus les
+  // hexagones / communes, alors estompés. Toutes en rouge de la charte (2026-11-25, demande de Sébastien ; avant :
+  // couleur par année), l'année et les enjeux (script 13) sont dans l'infobulle. Rouge #ed1c24 choisi par Sébastien
+  // le 2026-11-26 (avant : #f74141).
+  const CI = window.COUPES_INDEX, POLY = !!CI, S_POLY = 0.025, FONDU_POLY = 0.45;
+  const ROUGE = "#ed1c24", ROUGE_ETIQ = "Coupe rase détectée (en zoomant)";
+  let polyVisibles = true, polySurvole = null;
+  const CARREAUX = new Map();   // "i_j" -> { a, s, f, p, noms, z, n, chemins, bb, tous } (null pendant le chargement)
+  const polyActif = () => POLY && polyVisibles && vue.s >= S_POLY;
+  window.COUPES_TUILE = (cle, d) => {
+    const n = d.a.length, chemins = new Array(n), bb = new Float64Array(4 * n);
+    const tous = new Path2D();
+    for (let i = 0; i < n; i++) {
+      const p = new Path2D(); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const r of d.g[i]) {
+        let x = r[0], y = r[1]; p.moveTo(x, y);
+        for (let k = 0; k < r.length; k += 2) {
+          if (k) { x += r[k]; y += r[k + 1]; p.lineTo(x, y); }
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+        p.closePath();
+      }
+      chemins[i] = p; bb.set([x0, y0, x1, y1], 4 * i); tous.addPath(p);
+    }
+    CARREAUX.set(cle, { a: d.a, s: d.s, f: d.f || [], p: d.p || [], noms: d.n || [], z: d.z || [], n, chemins, bb, tous });
+    if (CARREAUX.size > 120) for (const k of CARREAUX.keys()) { if (CARREAUX.size <= 100) break; if (CARREAUX.get(k)) CARREAUX.delete(k); }
+    if (couche) couche.perime = true;
+    rendre();
+  };
+  function chargerCarreau(k) {
+    if (CARREAUX.has(k)) return;
+    CARREAUX.set(k, null);
+    const sc = document.createElement("script");
+    sc.src = `donnees/coupes/${k}.js`; sc.onerror = () => CARREAUX.delete(k); sc.onload = () => sc.remove();
+    document.head.appendChild(sc);
+  }
+  function carreauxDans(x0, y0, x1, y1) {   // carreaux dont l'emprise réelle (coupes entières) touche le rectangle
+    const out = [];
+    for (const k in CI.t) { const b = CI.t[k]; if (b[2] >= x0 && b[0] <= x1 && b[3] >= y0 && b[1] <= y1) out.push(k); }
+    return out;
+  }
+  function peindrePolys(c, X0, Ytop, Wc, Hc, s) {
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0);   // hexagones / communes estompés dessous
+    c.globalCompositeOperation = "destination-in"; c.fillStyle = `rgba(0,0,0,${FONDU_POLY})`;
+    c.fillRect(0, 0, c.canvas.width, c.canvas.height); c.restore();
+    const prets = [];
+    for (const k of carreauxDans(X0, Ytop - Hc / s, X0 + Wc / s, Ytop)) {
+      const t = CARREAUX.get(k); if (t) prets.push(t); else chargerCarreau(k);
+    }
+    c.save();
+    c.setTransform(DPR * s, 0, 0, -DPR * s, -X0 * s * DPR, Ytop * s * DPR);
+    c.globalAlpha = 0.85; c.fillStyle = ROUGE;
+    for (const t of prets) c.fill(t.tous, "nonzero");
+    c.globalAlpha = 1; c.lineJoin = "round";
+    c.strokeStyle = "rgba(255,255,255,0.8)"; c.lineWidth = (s > 0.1 ? 1 : 0.6) / s;
+    for (const t of prets) c.stroke(t.tous);
+    c.restore();
+  }
+  function trouverPoly(u, v) {   // coupe sous le pointeur (la plus récente si plusieurs se superposent)
+    if (!polyActif()) return null;
+    const [X, Y] = versMonde(u, v), tol = 3 / vue.s;   // 3 px de tolérance pour les toutes petites coupes
+    const ctx2 = trouver.ctx || (trouver.ctx = document.createElement("canvas").getContext("2d"));
+    let best = null;
+    for (const [k, t] of CARREAUX) {
+      if (!t) continue;
+      const b = CI.t[k]; if (X < b[0] - tol || X > b[2] + tol || Y < b[1] - tol || Y > b[3] + tol) continue;
+      for (let i = 0; i < t.n; i++) {
+        const o = 4 * i;
+        if (X < t.bb[o] - tol || X > t.bb[o + 2] + tol || Y < t.bb[o + 1] - tol || Y > t.bb[o + 3] + tol) continue;
+        if (best && t.a[i] <= best.t.a[best.i]) continue;
+        ctx2.lineWidth = 2 * tol;
+        if (ctx2.isPointInPath(t.chemins[i], X, Y, "evenodd") || ctx2.isPointInStroke(t.chemins[i], X, Y)) best = { t, i };
+      }
+    }
+    return best;
+  }
   let BB = [Infinity, Infinity, -Infinity, -Infinity];
   for (const r of window.CONTOURS.france) for (let k = 0; k < r.length; k += 2) {
     BB = [Math.min(BB[0], r[k]), Math.min(BB[1], r[k + 1]), Math.max(BB[2], r[k]), Math.max(BB[3], r[k + 1])];
@@ -292,14 +376,17 @@
   function tuile(k, i, j, demander) {
     const cle = k + "/" + i + "/" + j;
     let t = TUILES.get(cle);
+    // tuile en échec (erreur ou refus passager du serveur IGN) : redemandée après 1, 2, 4… s, 5 fois au plus ;
+    // sans ça, la tuile plus grossière restait affichée en carré flou et plus vert (2026-11-26)
+    if (t && t.echec && demander && t.essais < 5 && performance.now() - t.echec > 1000 * 2 ** (t.essais - 1)) t = null;
     if (!t && demander) {
-      const T = TUILE * 2 ** k, img = new Image();
-      t = { img, ok: false };
+      const T = TUILE * 2 ** k, img = new Image(), avant = TUILES.get(cle);
+      t = { img, ok: false, essais: avant ? avant.essais : 0 };
       img.crossOrigin = "anonymous";   // le serveur IGN autorise la lecture des pixels (CORS)
       // blanc rendu transparent seulement aux résolutions fines (k ≤ 4, là où la mer est blanche) : aux niveaux
       // grossiers, ça trouait la neige des Alpes (points bleus du fond « mer »)
       img.onload = () => { if (k < K_MER) videBlanc(t); t.ok = true; rendre(); };
-      img.onerror = () => TUILES.delete(cle);
+      img.onerror = () => { t.echec = performance.now(); t.essais++; setTimeout(rendre, 1000 * 2 ** (t.essais - 1) + 50); };
       img.src = WMS + [i * T, OY + j * T, (i + 1) * T, OY + (j + 1) * T].join(",");
       TUILES.set(cle, t);
       if (TUILES.size > 300) TUILES.delete(TUILES.keys().next().value);   // cache borné
@@ -350,6 +437,7 @@
   let nationale = null, couche = null, finMolette = 0;
   const masquees = new Set();   // classes masquées en cliquant sur la légende
   const cleFond = () => mode + "|" + satellite + "|" + [...masquees].sort().join(",") + "|" + zonesVisibles;
+  const cleCouche = () => cleFond() + "|" + W + "|" + Hh + "|" + DPR + "|" + polyVisibles;
   const enMouvement = () => !!vol || !!(geste && geste.bouge) || performance.now() - finMolette < 200;
 
   // Les hexagones sont peints pixel par pixel (et non comme des milliers de tracés vectoriels, que les
@@ -437,7 +525,8 @@
       c.stroke();
       c.restore();
     }
-    couche = { cv, cx: vue.cx, cy: vue.cy, s, Wc, Hc, cle: cleFond() + "|" + W + "|" + Hh + "|" + DPR };
+    if (polyActif()) peindrePolys(c, X0, Ytop, Wc, Hc, s);
+    couche = { cv, cx: vue.cx, cy: vue.cy, s, Wc, Hc, cle: cleCouche() };
     chrono("vue zoomée", performance.now() - t);
   }
   function collerNationale() {
@@ -453,7 +542,7 @@
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-    const cle = cleFond() + "|" + W + "|" + Hh + "|" + DPR;
+    const cle = cleCouche();
     if (vue.s * DPR <= S_NAT) collerNationale();                    // vue d'ensemble
     else if (enMouvement()) {
       // geste en cours : couche déjà peinte si elle est utilisable, image nationale autour
@@ -465,7 +554,7 @@
         ctx.drawImage(couche.cv, r[0], r[1], r[2], r[3]);
       } else collerNationale();
     } else {
-      if (!couche || couche.cle !== cle || couche.s !== vue.s || couche.cx !== vue.cx || couche.cy !== vue.cy) peindreCouche();
+      if (!couche || couche.perime || couche.cle !== cle || couche.s !== vue.s || couche.cx !== vue.cx || couche.cy !== vue.cy) peindreCouche();
       const r = rectCouche(); ctx.drawImage(couche.cv, r[0], r[1], r[2], r[3]);
     }
     ctx.restore();
@@ -508,6 +597,11 @@
       ctx.strokeStyle = "#1c2426"; ctx.lineWidth = 1.6 * px; ctx.stroke(p);
     }
 
+    if (polySurvole && polyActif()) {
+      const p = polySurvole.t.chemins[polySurvole.i];
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4 * px; ctx.stroke(p);
+      ctx.strokeStyle = "#1c2426"; ctx.lineWidth = 1.8 * px; ctx.stroke(p);
+    }
     // noms des départements dès qu'on a un peu zoomé (en pixels)
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     if (s > sMin * 2.2) {
@@ -620,7 +714,7 @@
       let corps;
       if (!(boise > 0)) corps = `<div class="tt-classe"><i style="background:${GRIS}"></i><b>Pas de forêt</b></div>
            <small>Aucune surface boisée dans cette commune : taux non calculé.</small>`;
-      else if (coupe === 0) corps = `<div class="tt-classe"><i style="background:${ZERO}"></i><b>${ZERO_ETIQ}</b></div>
+      else if (coupe === 0) corps = `<div class="tt-classe"><i style="background:transparent;box-shadow:inset 0 0 0 1px #888"></i><b>${ZERO_ETIQ}</b></div>
            <div>entre 2019 et 2025</div><small>${ha(boise)} ha de forêt</small>`;
       else corps = `<div class="tt-classe"><i style="background:${couleurClasse(k)}"></i><span class="tt-chiffre">${pourcent(TX_C[i])} %</span></div>
            <div>de la forêt en coupes rases entre 2019 et 2025</div>
@@ -634,7 +728,7 @@
     const t = taux[mode](i), k = CLASSES[mode][i];
     let corps;
     if (t === 0) {   // classe à part : aucune coupe détectée
-      corps = `<div class="tt-classe"><i style="background:${ZERO}"></i><b>${ZERO_ETIQ}</b></div>
+      corps = `<div class="tt-classe"><i style="background:transparent;box-shadow:inset 0 0 0 1px #888"></i><b>${ZERO_ETIQ}</b></div>
            <div>entre 2019 et 2025</div>
            <small>${mode === "foret" ? ha(boise) + " ha de forêt" : ha(terre) + " ha (hexagone de 2 km)"}</small>`;
     } else if (mode === "foret") {
@@ -675,6 +769,22 @@
       `<b>${echap(m.titre)}</b><p>${echap(m.texte)}</p>` +
       `<small>${m.source ? "Source : " + echap(m.source) + " ; Canopée" : "Source : Canopée"}</small></div>`;
   }
+  function contenuPoly(p, u, v) {
+    const t = p.t, i = p.i, o = 4 * i, a = t.a[i];
+    const c = communeProche((t.bb[o] + t.bb[o + 2]) / 2, (t.bb[o + 1] + t.bb[o + 3]) / 2);
+    const lieu = c ? "Près de " + c.n + " · " + (H.deps[c.c.slice(0, 2)] || "") : "";
+    const z = trouver(u, v), enZone = z >= 0 && zonesVisibles && zoneAt(z);
+    // enjeux : forêt ancienne et pente (part de la coupe, couches Canopée), espaces protégés touchés (INPN)
+    const enj = [], pc = x => x >= 95 ? "" : ` (${x} % de la coupe)`;
+    if (t.f[i]) enj.push("En forêt ancienne" + pc(t.f[i]));
+    if (t.p[i]) enj.push("Sur une pente de plus de 30 %" + pc(t.p[i]));
+    for (const k of t.z[i] || []) { const [ty, nom] = t.noms[k].split("|"); enj.push(`${echap(ty)} : ${echap(nom)}`); }
+    return `<div class="lieu">${lieu}</div>` +
+      `<div class="tt-classe"><i style="background:${ROUGE}"></i><b>Coupe rase détectée en ${2019 + a}</b></div>` +
+      `<small>${ha(t.s[i] / 100)} ha</small>` +
+      (enj.length ? `<ul class="tt-enjeux">${enj.map(e => `<li>${e}</li>`).join("")}</ul>` : "") +
+      (enZone ? `<div class="tt-zone">Zone où la marge d'erreur de la détection est trop élevée : cette coupe est à prendre avec précaution.</div>` : "");
+  }
   function survol(u, v, epingler) {
     const k = mobProche(u, v);
     if (k >= 0) {   // un point de mobilisation l'emporte sur l'hexagone dessous
@@ -687,6 +797,14 @@
     }
     if (mobSurvole >= 0) { mobSurvole = -1; rendre(); }
     canvas.style.cursor = "";
+    const pc = trouverPoly(u, v);
+    if (pc) {   // une coupe l'emporte sur l'hexagone / la commune dessous
+      if (survole >= 0) { survole = -1; rendre(); }
+      if (!polySurvole || polySurvole.t !== pc.t || polySurvole.i !== pc.i) { polySurvole = pc; rendre(); }
+      tt.innerHTML = contenuPoly(pc, u, v); placerBulle(u, v); epingle = !!epingler;
+      return;
+    }
+    if (polySurvole) { polySurvole = null; rendre(); }
     let i = trouver(u, v);
     if (i >= 0 && masquees.has(clAt(i)) && !(zonesVisibles && zoneAt(i))) i = -1;   // hexagone masqué depuis la légende : pas d'infobulle
     if (i !== survole) { survole = i; rendre(); }
@@ -697,7 +815,7 @@
   }
   function fermerBulle() {
     tt.hidden = true; epingle = false;
-    if (survole >= 0 || mobSurvole >= 0) { survole = -1; mobSurvole = -1; rendre(); }
+    if (survole >= 0 || mobSurvole >= 0 || polySurvole) { survole = -1; mobSurvole = -1; polySurvole = null; rendre(); }
   }
 
   // ---------- Zoom et déplacement ----------
@@ -758,6 +876,13 @@
       rendre();
     }
   });
+  function memeCible(u, v) {   // toucher sur l'élément dont l'infobulle est déjà ouverte : on la ferme
+    if (mobSurvole >= 0) return mobProche(u, v) === mobSurvole;
+    if (mobProche(u, v) >= 0) return false;
+    const p = trouverPoly(u, v);
+    if (polySurvole) return !!p && p.t === polySurvole.t && p.i === polySurvole.i;
+    return !p && trouver(u, v) === survole;
+  }
   function finPointeur(e) {
     if (!pointeurs.has(e.pointerId)) return;
     pointeurs.delete(e.pointerId);
@@ -765,8 +890,7 @@
     if (geste && geste.type === "glisser" && !geste.bouge && performance.now() - geste.t < 500) {
       // simple toucher / clic : infobulle épinglée (mobile) ou bascule (souris)
       if (e.pointerType === "mouse") survol(e.offsetX, e.offsetY, false);
-      else if (epingle && (mobSurvole >= 0 ? mobProche(e.offsetX, e.offsetY) === mobSurvole
-                                          : mobProche(e.offsetX, e.offsetY) < 0 && trouver(e.offsetX, e.offsetY) === survole)) fermerBulle();
+      else if (epingle && memeCible(e.offsetX, e.offsetY)) fermerBulle();
       else survol(e.offsetX, e.offsetY, true);
     }
     if (pointeurs.size === 1 && geste && geste.type === "pincer") {
@@ -832,23 +956,23 @@
       `<rect x="${x}" y="${y + LG.ombre}" width="${c}" height="${c}" fill="${OMBRE}"/><rect x="${x}" y="${y}" width="${c}" height="${c}" fill="#fff"/>` +
       (fond ? `<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="${fond}" fill-opacity="${opac}"/>` : "") +
       `<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="none" stroke="#000" stroke-width="${LG.trait}"/></svg>`; };
-  const carreZero = () => carre(ZERO, masquees.has(8) ? 0.12 : opacite(8));
   // carré « zone d'erreur » : gris de la carte, même dessin que les autres carrés
   const carreZone = () => carre(Z_COUL, zonesVisibles ? Z_OPAC : 0.12);
   function legende() {
     const M = MODES[mode];
     $("leg-titre").textContent = M.titre;
     let h = '<div class="leg-gauche">';
-    h += `<button type="button" class="leg-item" data-k="8" aria-pressed="${!masquees.has(8)}"${masquees.has(8) ? " data-masquee" : ""} title="Cliquer pour masquer / afficher">` +
-      carreZero() + `<span>${ZERO_ETIQ}</span></button>`;
-    if (ZONES) h += `<button type="button" class="leg-item" data-k="z" aria-pressed="${zonesVisibles}"${zonesVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / regriser les taux de ces hexagones">` +
+    // « Aucune coupe détectée » retirée de la légende (2026-11-26) : transparente sur la carte, reste dans l'infobulle
+    if (ZONES) h += `<button type="button" class="leg-item" data-k="z" aria-pressed="${zonesVisibles}"${zonesVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / regriser les taux de ces ${COMMUNAL ? "communes" : "hexagones"}">` +
       carreZone() + `<span>${Z_ETIQ}</span></button>`;
     // « Pas de forêt » retiré de la légende (2026-11-20) : ces hexagones restent transparents (on voit le satellite)
     h += '</div><div class="leg-barre" id="leg-barre"></div>';
     if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
       `<svg width="16" height="${HAUT_SVG}" viewBox="0 0 16 ${HAUT_SVG}" aria-hidden="true"><circle cx="8" cy="${LG.y + LG.h / 2}" r="5.5" fill="${MOB_COUL}" stroke="#fff" stroke-width="2"${mobVisibles ? "" : ' fill-opacity="0.25"'}/>` +
       `<circle cx="8" cy="${LG.y + LG.h / 2}" r="6.6" fill="none" stroke="#000" stroke-width="0.6" stroke-opacity="0.35"/></svg><span>${MOB_ETIQ}</span></button></div>`;
-    h += '<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces hexagones.</div>';
+    if (POLY) h += `<div class="leg-poly"><button type="button" class="leg-item" data-k="p" aria-pressed="${polyVisibles}"${polyVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
+      carre(ROUGE, polyVisibles ? 0.85 : 0.12) + `<span>${ROUGE_ETIQ}</span></button></div>`;
+    h += `<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces ${COMMUNAL ? "communes" : "hexagones"}.</div>`;
     $("leg-cases").innerHTML = h;
     // barre dessinée à la largeur réelle de son emplacement (traits nets, mêmes épaisseurs que les carrés)
     const b = $("leg-barre"); b.innerHTML = barreSVG(b.clientWidth);
@@ -860,6 +984,13 @@
       mobVisibles = !mobVisibles; if (!mobVisibles && mobSurvole >= 0) fermerBulle();
       legende(); rendre();
       const f = $("leg-cases").querySelector && $("leg-cases").querySelector('[data-k="m"]');
+      if (f && e.type === "keydown" && f.focus) f.focus();
+      return;
+    }
+    if (b.dataset.k === "p") {   // polygones des coupes
+      polyVisibles = !polyVisibles; if (!polyVisibles && polySurvole) fermerBulle();
+      legende(); rendre();
+      const f = $("leg-cases").querySelector && $("leg-cases").querySelector('[data-k="p"]');
       if (f && e.type === "keydown" && f.focus) f.focus();
       return;
     }
@@ -1007,7 +1138,7 @@
       if (c) choisir(c);
     }, e => console.warn(e));
   }
-  window.CARTE = { COMMUNAL, COM, CL_C, peindreCommunes, MOB, mobProche, contenuMob, survol, masquees, EN_ZONE, zones: () => zonesVisibles, legende, rasteriser, CLASSES, chargerCommunes, contraindre, vueFrance, chercher, choisir, trouver, contenuBulle, vue: () => vue, selection: () => selection };  // pour les tests
+  window.CARTE = { aller: v => { vue = contraindre(v); rendre(); }, POLY, CARREAUX, trouverPoly, contenuPoly, polyActif, carreauxDans, chargerCarreau, COMMUNAL, COM, CL_C, peindreCommunes, MOB, mobProche, contenuMob, survol, masquees, EN_ZONE, zones: () => zonesVisibles, legende, rasteriser, CLASSES, chargerCommunes, contraindre, vueFrance, chercher, choisir, trouver, contenuBulle, vue: () => vue, selection: () => selection };  // pour les tests
   // Redimensionnement : on ne réagit qu'à un vrai changement de taille, et une seule fois par image
   // (sinon boucle possible : hauteur du cadre -> barre de défilement -> largeur -> hauteur…).
   let tailleVue = "", redim = 0;

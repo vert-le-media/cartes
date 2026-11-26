@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coupes rases par hexagone | Vert</title>
+<title>Coupes rases par commune | Vert</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,7 +35,7 @@
   </div>
 
   <div class="cadre" id="cadre">
-    <canvas id="carte" aria-label="Carte des coupes rases par hexagone de 2 km, France métropolitaine, 2019-2025"></canvas>
+    <canvas id="carte" aria-label="Carte des coupes rases par commune, France métropolitaine, 2019-2025"></canvas>
     <div class="zoom">
       <button id="z-plus" type="button" title="Zoomer" aria-label="Zoomer">+</button>
       <button id="z-moins" type="button" title="Dézoomer" aria-label="Dézoomer">−</button>
@@ -46,7 +46,7 @@
   </div>
 
   <footer class="hab-pied">
-    <span class="hab-source">Sources&nbsp;: Canopée&nbsp;; IGN · Infographie Sébastien Eid/Vert</span>
+    <span class="hab-source">Sources&nbsp;: Canopée (CC BY-NC-ND)&nbsp;; IGN&nbsp;; INPN · Infographie Sébastien Eid/Vert</span>
     <img class="hab-logo" src="logo-vert.png" alt="Vert">
   </footer>
 
@@ -64,6 +64,11 @@
 <script src="donnees/contours.js"></script>
 <script src="donnees/zones.js"></script>
 <script src="donnees/mobilisations.js"></script>
+<script src="donnees/coupes-index.js"></script>
+<!-- Carte par commune (retenue le 2026-11-25, hexagones abandonnés) : taux par commune (script 10), contours (script 11).
+     hex.js et zones.js restent chargés : carte.js en tire encore les noms et étiquettes des départements et la case « marge d'erreur ». -->
+<script src="donnees/taux-communes.js"></script>
+<script src="donnees/communes-carte.js"></script>
 <!-- donnees/communes.js : chargé à la demande par carte.js (recherche, survol) -->
 <script src="carte.js"></script>
 </body>

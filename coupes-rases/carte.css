@@ -34,6 +34,7 @@ body { margin: 0; padding: 8px; background: #fff; color: #000; font: 13px/1.45 v
 .leg-barre { order: 1; flex: 1 1 0; min-width: 240px; }
 .leg-gauche { order: 2; flex: none; display: flex; flex-wrap: nowrap; gap: 4px 18px; }   /* carrés alignés sur la barre (mêmes 21 px de haut) */
 .leg-mob { order: 3; flex-basis: 100%; }   /* mobilisations : ligne à part, sous la barre et les carrés */
+.leg-poly { order: 3; flex-basis: 100%; }  /* polygones des coupes (2026-11-24) : ligne à part, sous les mobilisations */
 .leg-astuce { order: 4; flex-basis: 100%; }
 .leg-item { display: flex; align-items: center; gap: 6px; height: 21px; font: inherit; font-size: 12.5px; line-height: 1; color: #000;
             border: 0; background: none; padding: 0; text-align: left; }
@@ -101,6 +102,9 @@ canvas.drag { cursor: grabbing; }
 .tt-classe { display: flex; align-items: center; gap: 6px; }
 .tt-chiffre { font-size: 18px; font-weight: 600; }
 .tooltip small { color: var(--doux); display: block; }
+.tt-enjeux { margin: 5px 0 0; padding: 5px 0 0 14px; border-top: 1px solid #dfe5e6; font-size: 12px; line-height: 1.35; }
+.tt-enjeux li { margin: 0 0 2px; }
+.tooltip:has(.tt-enjeux) { max-width: min(300px, calc(100% - 16px)); }
 .tt-zone { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dfe5e6; color: var(--doux); font-size: 11.5px; line-height: 1.35; }
 
 .chargement {
