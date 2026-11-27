@@ -143,9 +143,22 @@ canvas.drag { cursor: grabbing; }
 /* sources : dans le panneau, en petit, juste au-dessus de la recherche (déplacées par carte.js) */
 .habillage:fullscreen .hab-pied, .habillage.plein .hab-pied { margin: 2px 0 6px; }
 .habillage:fullscreen .hab-source, .habillage.plein .hab-source { font-size: 10.5px; color: var(--doux); }
+.bouton-legende { display: none; }
+/* Plein écran sur téléphone (2026-11-27) : le panneau ne montre que la recherche et un bouton « Afficher la légende » ;
+   titre, légende et sources apparaissent quand on le déplie (.ouvert), sinon la légende couvrait 60 % de l'écran */
 @media (max-width: 760px) {
-  .habillage:fullscreen .panneau, .habillage.plein .panneau { top: 8px; left: 8px; width: calc(100% - 60px); padding: 10px 10px 2px; }
-  .habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { font-size: 17px; }
+  .habillage:fullscreen .panneau, .habillage.plein .panneau { top: 8px; left: 8px; width: calc(100% - 58px); padding: 8px 8px 6px; }
+  .habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { font-size: 16px; }
+  .habillage:fullscreen .recherche, .habillage.plein .recherche { order: 1; margin: 0; }
+  .habillage:fullscreen .bouton-legende, .habillage.plein .bouton-legende {
+    order: 2; display: block; align-self: flex-start; margin-top: 6px; padding: 3px 0; border: 0; background: none;
+    font: 600 13px var(--police); color: var(--vert); cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { order: 3; margin-top: 8px; }
+  .habillage:fullscreen .legende, .habillage.plein .legende { order: 4; }
+  .habillage:fullscreen .hab-pied, .habillage.plein .hab-pied { order: 5; margin: 4px 0 0; }
+  .habillage:fullscreen .panneau:not(.ouvert) > :is(.hab-titre, .legende, .hab-pied),
+  .habillage.plein .panneau:not(.ouvert) > :is(.hab-titre, .legende, .hab-pied) { display: none; }
 }
 
 .chargement {

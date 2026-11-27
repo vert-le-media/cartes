@@ -1254,6 +1254,14 @@
       try { const pr = req.call(HAB); if (pr && pr.catch) pr.catch(repliPlein); } catch (e) { repliPlein(); }
     } else repliPlein();
   };
+  // plein écran sur téléphone : légende repliée par défaut, dépliée par le bouton (2026-11-27)
+  const B_LEG = $("bouton-legende"), PANNEAU = document.querySelector(".panneau");
+  if (B_LEG && PANNEAU && PANNEAU.classList) B_LEG.onclick = () => {
+    const o = !PANNEAU.classList.contains("ouvert");
+    PANNEAU.classList.toggle("ouvert", o);
+    B_LEG.textContent = o ? "Masquer la légende" : "Afficher la légende"; B_LEG.setAttribute("aria-expanded", String(o));
+    if (o) legende();   // barre des taux redessinée à la largeur du panneau
+  };
   document.addEventListener("fullscreenchange", majPlein);
   document.addEventListener("webkitfullscreenchange", majPlein);
   document.addEventListener("keydown", e => { if (e.key === "Escape" && HAB && HAB.classList && HAB.classList.contains("plein")) pleinCSS(false); });
