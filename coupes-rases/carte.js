@@ -38,7 +38,7 @@
   // l'infobulle) ; 0-2 % éclaircie (0,45 → 0,3)
   const opacite = k => k === 8 ? 0 : k === 0 ? 0.3 : k === 1 ? 0.45 : 0.62;
   const MODES = {
-    foret: { titre: window.COMMUNES_CARTE ? "Taux de coupes rases en % de la forêt, par commune, entre 2019 et 2025"
+    foret: { titre: window.COMMUNES_CARTE ? "Taux de coupes rases en % de la forêt, par commune, entre 2018 et 2025"
                                          : "Taux de coupes rases en % de la forêt, par maille de 2 km de diamètre", gris: "Pas de forêt" },
     hex:   { titre: "Taux de coupes rases en % du territoire, par maille de 2 km de diamètre", gris: null },
   };
