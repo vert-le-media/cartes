@@ -237,7 +237,7 @@
       chemins[i] = p; bb.set([x0, y0, x1, y1], 4 * i); tous.addPath(p);
     }
     CARREAUX.set(cle, { a: d.a, s: d.s, f: d.f || [], p: d.p || [], noms: d.n || [], z: d.z || [], n, chemins, bb, tous });
-    if (CARREAUX.size > 120) for (const k of CARREAUX.keys()) { if (CARREAUX.size <= 100) break; if (CARREAUX.get(k)) CARREAUX.delete(k); }
+    if (CARREAUX.size > 80) for (const k of CARREAUX.keys()) { if (CARREAUX.size <= 60) break; if (CARREAUX.get(k)) CARREAUX.delete(k); }   // 120 / 100 avant le 2026-11-27
     if (couche) couche.perime = true;
     rendre();
   };
@@ -370,7 +370,11 @@
       a.w = dispoW; a.ih = ih; a.force = false;
     }
     const r = cadre.getBoundingClientRect();
-    W = r.width; Hh = r.height; DPR = window.devicePixelRatio || 1;
+    // Mémoire (2026-11-27 : Safari fermait l'onglet sur un iPhone X, 3 Go) : densité plafonnée à 2 pixels réels par
+    // point (les écrans à 3 triplaient les images calculées ; rendu toujours net) ; image de la France plus légère sur
+    // téléphone (elle n'y est jamais affichée à plus de ~0,0006 px/m)
+    W = r.width; Hh = r.height; DPR = Math.min(2, window.devicePixelRatio || 1);
+    { const sn = W < 760 ? 0.0013 : 0.002; if (sn !== S_NAT) { S_NAT = sn; nationale = null; } }
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hh * DPR);
     { const { m, gauche, haut, bas } = marges();   // (marges recalculées avec la largeur réelle du cadre)
       sMin = Math.min((W - gauche - m) / (BB[2] - BB[0]), (Hh - haut - bas) / (BB[3] - BB[1])); }
@@ -428,7 +432,7 @@
       img.onerror = () => { t.echec = performance.now(); t.essais++; setTimeout(rendre, 1000 * 2 ** (t.essais - 1) + 50); };
       img.src = WMTS + "&TILEMATRIX=" + z + "&TILEROW=" + y + "&TILECOL=" + x;
       TUILES.set(cle, t);
-      if (TUILES.size > 600) TUILES.delete(TUILES.keys().next().value);   // cache borné
+      if (TUILES.size > 250) TUILES.delete(TUILES.keys().next().value);   // cache borné (600 avant le 2026-11-27 : ~150 Mo d'images décodées)
     }
     return t && t.ok ? t : null;
   }
@@ -492,7 +496,8 @@
   //    hors écran, réutilisée tant que la vue ne change pas (survol, infobulle : rien à repeindre).
   // 3. Pendant un geste (glisser, pincer, molette, vol animé) : on ne repeint rien, on déplace et on
   //    agrandit les images déjà prêtes ; la vue nette est repeinte quand le geste se termine.
-  const S_NAT = 0.002, MARGE_COUCHE = 0.2;   // S_NAT : pixels physiques par mètre de l'image nationale
+  let S_NAT = 0.002;   // pixels physiques par mètre de l'image nationale (0,0013 sur téléphone, voir ajusterTaille)
+  const MARGE_COUCHE = 0.2;
   let nationale = null, couche = null, finMolette = 0;
   const masquees = new Set();   // classes masquées en cliquant sur la légende
   const cleFond = () => mode + "|" + satellite + "|" + [...masquees].sort().join(",") + "|" + zonesVisibles;
