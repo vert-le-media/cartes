@@ -1131,9 +1131,17 @@
     else if (e.key === "Enter") { const c = resultats[Math.max(0, actif)]; if (c) choisir(c); e.preventDefault(); }
     else if (e.key === "Escape") { res.hidden = true; }
   });
+  // Souris : choix dès l'appui (le champ garde le focus). Toucher : choix au « clic » qui suit un tap sans glissement,
+  // pour pouvoir faire défiler la liste du doigt (avant le 2026-11-27, le simple appui choisissait la commune).
   res.addEventListener("pointerdown", e => {
+    if (e.pointerType !== "mouse") return;
     const d = e.target.closest("[data-k]");
-    if (d) { e.preventDefault(); choisir(resultats[+d.dataset.k]); }
+    if (d) { e.preventDefault(); res.choixSouris = performance.now(); choisir(resultats[+d.dataset.k]); }
+  });
+  res.addEventListener("click", e => {
+    if (performance.now() - (res.choixSouris || 0) < 600) return;   // déjà choisi à l'appui de la souris
+    const d = e.target.closest && e.target.closest("[data-k]");
+    if (d && resultats[+d.dataset.k]) choisir(resultats[+d.dataset.k]);
   });
   q.addEventListener("blur", () => setTimeout(() => { res.hidden = true; q.setAttribute("aria-expanded", "false"); }, 150));
   effacer.addEventListener("click", () => {

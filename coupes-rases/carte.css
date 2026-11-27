@@ -75,6 +75,7 @@ button.leg-item:hover rect:last-child { stroke-width: 2; }
   position: absolute; left: 0; right: 0; top: 100%; margin-top: 2px; z-index: 10;
   background: var(--fond); border: 1px solid var(--bord); border-radius: 6px; max-height: 280px; overflow-y: auto;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+  touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;   /* défilement au doigt */
 }
 .resultats div { padding: 7px 10px; cursor: pointer; }
 .resultats div:hover, .resultats div.actif { background: var(--survol); }
