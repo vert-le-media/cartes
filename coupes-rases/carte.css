@@ -164,8 +164,22 @@ canvas.drag { cursor: grabbing; }
 
 .chargement {
   position: absolute; inset: 0; display: grid; place-items: center; color: var(--doux);
-  background: var(--carte); font-size: 13px;
+  background: var(--carte); font-size: 13px; z-index: 7;
 }
+/* animation de chargement (2026-11-27, choix de Sébastien) : 7 barres du vert le plus clair au plus foncé du logo
+   (#7de2b4, #1ba99f, #074c3f et intermédiaires), qui montent et descendent en vague ; figées si l'animation est réduite */
+.chg-bloc { display: grid; justify-items: center; gap: 12px; }
+.chg-barres { display: flex; align-items: flex-end; gap: 4px; height: 44px; }
+.chg-barres i { width: 9px; height: 100%; border-radius: 1px; transform-origin: bottom; animation: chg-monte 1.4s ease-in-out infinite; }
+.chg-barres i:nth-child(1) { background: #d4f6e7; animation-delay: 0s; }
+.chg-barres i:nth-child(2) { background: #a9edcf; animation-delay: .1s; }
+.chg-barres i:nth-child(3) { background: #7de2b4; animation-delay: .2s; }
+.chg-barres i:nth-child(4) { background: #4cc5a9; animation-delay: .3s; }
+.chg-barres i:nth-child(5) { background: #1ba99f; animation-delay: .4s; }
+.chg-barres i:nth-child(6) { background: #11796f; animation-delay: .5s; }
+.chg-barres i:nth-child(7) { background: #074c3f; animation-delay: .6s; }
+@keyframes chg-monte { 0%, 100% { transform: scaleY(.18); } 45% { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .chg-barres i { animation: none; transform: scaleY(.6); } }
 
 /* ---------- Pied : sources et signature (logo sur la carte ; méthodologie retirée le 2026-11-26) ---------- */
 /* note sur les Outre-mer, liée par un astérisque au titre de la légende (2026-11-27), juste au-dessus des sources */

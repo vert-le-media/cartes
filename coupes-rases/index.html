@@ -54,7 +54,10 @@
       <img src="logo-canopee-blanc.svg" alt="Canopée Forêts vivantes">
     </div>
     <div class="tooltip" id="tt" hidden></div>
-    <div class="chargement" id="chg">Chargement…</div>
+    <!-- animation de chargement (CSS pur, 2026-11-27) : 7 barres dans les verts du logo Vert, en vague -->
+    <div class="chargement" id="chg" role="status"><div class="chg-bloc">
+      <div class="chg-barres" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <span>Chargement de la carte</span></div></div>
   </div>
 
   <p class="hab-note">* Les Outre-mer sont absents de la carte faute de données brutes compatibles avec notre méthodologie.</p>
