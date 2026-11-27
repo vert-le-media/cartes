@@ -34,7 +34,7 @@ body { margin: 0; padding: 8px; background: #fff; color: #000; font: 13px/1.45 v
 .leg-cases { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 20px; }
 .leg-barre { order: 1; flex: 1 1 0; min-width: 240px; }
 .leg-gauche { order: 2; flex: none; display: flex; flex-wrap: nowrap; gap: 4px 18px; }   /* carrés alignés sur la barre (mêmes 21 px de haut) */
-.leg-poly { order: 3; flex-basis: 100%; }  /* polygones des coupes (2026-11-24) : ligne à part, sous la barre */
+.leg-poly { order: 3; flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 22px; }  /* marge d'erreur puis coupes rases (2026-11-27), sous la barre */
 .leg-mob { order: 4; flex-basis: 100%; }   /* mobilisations : sous les coupes (2026-11-26) */
 .leg-mob .leg-item[data-masquee] span { text-decoration: none; opacity: .75; }   /* masquées à l'ouverture : pas de rature */
 .leg-mob img { flex: none; display: block; }
@@ -64,10 +64,10 @@ button.leg-item:hover rect:last-child { stroke-width: 2; }
 }
 .recherche input::placeholder { color: var(--vert); opacity: .8; font-weight: 600; }
 .recherche input:focus { outline: none; box-shadow: 0 0 0 3px rgba(0, 67, 82, .22); }
-.loupe { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; pointer-events: none; color: var(--vert); }
+.loupe { position: absolute; left: 12px; top: 22px; transform: translateY(-50%); width: 18px; height: 18px; pointer-events: none; color: var(--vert); }
 .recherche input::-webkit-search-cancel-button { display: none; }
 .effacer {
-  position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px;
+  position: absolute; right: 4px; top: 22px; transform: translateY(-50%); width: 28px; height: 28px;
   border: 0; background: none; color: var(--doux); font: 20px/1 var(--police); cursor: pointer; border-radius: 4px;
 }
 .effacer:hover { color: var(--texte); background: var(--survol); }
@@ -97,9 +97,11 @@ canvas.drag { cursor: grabbing; }
 }
 .zoom button:hover { background: var(--survol); }
 .zoom button svg { display: block; margin: auto; }
-/* logo blanc de Vert dans le coin bas droit de la carte (2026-11-26) */
-.logo-carte { position: absolute; right: 20px; bottom: 18px; width: 96px; height: auto; pointer-events: none;
-              filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55)); }
+/* logos blancs dans le coin bas droit de la carte : Vert (2026-11-26), et dessous Canopée (logo horizontal blanc,
+   recadré sur le dessin), à la même largeur (2026-11-27) */
+.logos-carte { position: absolute; right: 20px; bottom: 18px; width: 96px; display: flex; flex-direction: column; gap: 7px;
+               pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .55)); }
+.logos-carte img { display: block; width: 100%; height: auto; }
 
 .tooltip {
   position: absolute; pointer-events: none; background: var(--fond); color: var(--texte); z-index: 5;
@@ -138,11 +140,9 @@ canvas.drag { cursor: grabbing; }
 }
 .habillage:fullscreen .panneau .resultats, .habillage.plein .panneau .resultats { position: static; margin-top: 4px; }
 .habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { font-size: 20px; margin-bottom: 6px; }
-.habillage:fullscreen .hab-pied, .habillage.plein .hab-pied {
-  position: absolute; z-index: 6; left: 12px; bottom: 10px; margin: 0; max-width: calc(100% - 150px);
-  padding: 4px 8px; background: rgba(255, 255, 255, .88); border-radius: 4px;
-}
-.habillage:fullscreen .hab-source, .habillage.plein .hab-source { font-size: 11px; }
+/* sources : dans le panneau, en petit, juste au-dessus de la recherche (déplacées par carte.js) */
+.habillage:fullscreen .hab-pied, .habillage.plein .hab-pied { margin: 2px 0 6px; }
+.habillage:fullscreen .hab-source, .habillage.plein .hab-source { font-size: 10.5px; color: var(--doux); }
 @media (max-width: 760px) {
   .habillage:fullscreen .panneau, .habillage.plein .panneau { top: 8px; left: 8px; width: calc(100% - 60px); padding: 10px 10px 2px; }
   .habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { font-size: 17px; }
@@ -172,7 +172,7 @@ canvas.drag { cursor: grabbing; }
      environ 15,3 fois la taille de police en Vend Sans Bold (335 px à 22 px). 100vw = largeur de la page (ou de l'iframe) */
   .hab-titre { font-size: clamp(17px, calc((100vw - 26px) / 15.6), 22px); }
   .recherche input::placeholder { font-size: 14px; }
-  .logo-carte { width: 76px; right: 14px; bottom: 14px; }   /* agrandi puis décollé du coin le 2026-11-27 (avant : 64 et 52 px, à 10 / 8 px du bord) */
+  .logos-carte { width: 76px; right: 14px; bottom: 14px; gap: 5px; }
 }
 @media (max-width: 520px) {
   .leg-gauche { gap: 4px 16px; }

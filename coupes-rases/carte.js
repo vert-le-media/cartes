@@ -1018,14 +1018,16 @@
   function legende() {
     const M = MODES[mode];
     $("leg-titre").textContent = M.titre;
-    let h = '<div class="leg-gauche">';
     // « Aucune coupe détectée » retirée de la légende (2026-11-26) : transparente sur la carte, reste dans l'infobulle
-    if (ZONES) h += `<button type="button" class="leg-item" data-k="z" aria-pressed="${zonesVisibles}"${zonesVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / regriser les taux de ces ${COMMUNAL ? "communes" : "hexagones"}">` +
-      carreZone() + `<span>${Z_ETIQ}</span></button>`;
     // « Pas de forêt » retiré de la légende (2026-11-20) : ces hexagones restent transparents (on voit le satellite)
-    h += '</div><div class="leg-barre" id="leg-barre"></div>';
-    if (POLY) h += `<div class="leg-poly"><button type="button" class="leg-item" data-k="p" aria-pressed="${polyVisibles}"${polyVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
-      carre(ROUGE, polyVisibles ? 1 : 0.12) + `<span>${ROUGE_ETIQ}</span></button></div>`;
+    // 2026-11-27 (demande de Sébastien) : « Marge d'erreur élevée » sur la ligne des coupes rases, juste avant
+    // (avant : à droite de la barre des taux)
+    let h = '<div class="leg-barre" id="leg-barre"></div>';
+    const zb = ZONES ? `<button type="button" class="leg-item" data-k="z" aria-pressed="${zonesVisibles}"${zonesVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / regriser les taux de ces ${COMMUNAL ? "communes" : "hexagones"}">` +
+      carreZone() + `<span>${Z_ETIQ}</span></button>` : "";
+    const pb = POLY ? `<button type="button" class="leg-item" data-k="p" aria-pressed="${polyVisibles}"${polyVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
+      carre(ROUGE, polyVisibles ? 1 : 0.12) + `<span>${ROUGE_ETIQ}</span></button>` : "";
+    if (zb || pb) h += `<div class="leg-poly">${zb}${pb}</div>`;
     if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / masquer">` +
       `<img src="picto-contestation.svg" width="17" height="${Math.round(17 * PICTO_RATIO)}" alt=""${mobVisibles ? "" : ' style="opacity:.45"'}><span>${mobVisibles ? MOB_ETIQ : "Cliquez pour afficher les mobilisations contre les coupes rases"}</span></button></div>`;
     h += `<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces ${COMMUNAL ? "communes" : "hexagones"}.</div>`;
@@ -1222,6 +1224,12 @@
   const ICONE_SORTIR = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 1.5v4h-4M14.5 5.5h-4v-4M10.5 14.5v-4h4M1.5 10.5h4v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function majPlein() {
     const p = estPlein();
+    // sources : en plein écran, dans le panneau juste au-dessus de la recherche ; sinon sous la carte (2026-11-27)
+    const pied = document.querySelector(".hab-pied"), rech = document.querySelector(".recherche");
+    if (pied && rech && rech.parentNode && pied.parentNode) {
+      if (p && pied.nextElementSibling !== rech) rech.parentNode.insertBefore(pied, rech);
+      else if (!p && pied.parentNode === rech.parentNode && cadre.parentNode) cadre.parentNode.insertBefore(pied, cadre.nextSibling);
+    }
     if (B_PLEIN) { B_PLEIN.innerHTML = p ? ICONE_SORTIR : ICONE_PLEIN; B_PLEIN.title = p ? "Quitter le plein écran" : "Plein écran";
                    B_PLEIN.setAttribute("aria-label", B_PLEIN.title); B_PLEIN.setAttribute("aria-pressed", String(p)); }
     recadrer(true);
