@@ -68,17 +68,20 @@
 
 </div>
 
+<!-- scripts en « defer » (2026-11-27) : la page (cadre, animation de chargement) s'affiche tout de suite, les données
+     (plusieurs Mo) se téléchargent ensuite et s'exécutent dans l'ordre ; avant, rien n'apparaissait sur téléphone tant
+     qu'elles n'étaient pas arrivées -->
 <script>window.T_PAGE = performance.now();</script>
-<script src="donnees/hex.js"></script>
-<script src="donnees/contours.js"></script>
-<script src="donnees/zones.js"></script>
-<script src="donnees/mobilisations.js"></script>
-<script src="donnees/coupes-index.js"></script>
+<script src="donnees/hex.js" defer></script>
+<script src="donnees/contours.js" defer></script>
+<script src="donnees/zones.js" defer></script>
+<script src="donnees/mobilisations.js" defer></script>
+<script src="donnees/coupes-index.js" defer></script>
 <!-- Carte par commune (retenue le 2026-11-25, hexagones abandonnés) : taux par commune (script 10), contours (script 11).
      hex.js et zones.js restent chargés : carte.js en tire encore les noms et étiquettes des départements et la case « marge d'erreur ». -->
-<script src="donnees/taux-communes.js"></script>
-<script src="donnees/communes-carte.js"></script>
+<script src="donnees/taux-communes.js" defer></script>
+<script src="donnees/communes-carte.js" defer></script>
 <!-- donnees/communes.js : chargé à la demande par carte.js (recherche, survol) -->
-<script src="carte.js"></script>
+<script src="carte.js" defer></script>
 </body>
 </html>
