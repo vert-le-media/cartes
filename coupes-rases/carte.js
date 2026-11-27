@@ -1188,7 +1188,9 @@
     // cadrage : la commune occupe environ la moitié de la carte (au moins 12 km de large)
     const bb = selection.bb || [c.x - 3000, c.y - 3000, c.x + 3000, c.y + 3000];
     const larg = Math.max(bb[2] - bb[0], 12000), haut = Math.max(bb[3] - bb[1], 12000);
-    const s = Math.min(S_MAX, Math.min(W / (larg * 2), Hh / (haut * 2)));
+    // … mais toujours assez près pour voir les coupes précises (2026-11-27, demande de Sébastien) : au moins 15 % au-delà
+    // du seuil d'affichage des polygones (S_POLY), quitte à ne pas montrer toute une grande commune (téléphone surtout)
+    const s = Math.min(S_MAX, Math.max(POLY ? S_POLY * 1.15 : 0, Math.min(W / (larg * 2), Hh / (haut * 2))));
     voler({ cx: (bb[0] + bb[2]) / 2, cy: (bb[1] + bb[3]) / 2, s }, 900);
   }
 
