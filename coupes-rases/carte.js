@@ -1017,7 +1017,8 @@
   const carreZone = () => carre(Z_COUL, zonesVisibles ? Z_OPAC : 0.12);
   function legende() {
     const M = MODES[mode];
-    $("leg-titre").textContent = M.titre;
+    // astérisque renvoyant à la note sur les Outre-mer, sous la carte (2026-11-27 ; masqués en plein écran)
+    $("leg-titre").innerHTML = echap(M.titre) + (COMMUNAL ? '<span class="asterisque">*</span>' : "");
     // « Aucune coupe détectée » retirée de la légende (2026-11-26) : transparente sur la carte, reste dans l'infobulle
     // « Pas de forêt » retiré de la légende (2026-11-20) : ces hexagones restent transparents (on voit le satellite)
     // 2026-11-27 (demande de Sébastien) : « Marge d'erreur élevée » sur la ligne des coupes rases, juste avant
@@ -1228,7 +1229,10 @@
     const pied = document.querySelector(".hab-pied"), rech = document.querySelector(".recherche");
     if (pied && rech && rech.parentNode && pied.parentNode) {
       if (p && pied.nextElementSibling !== rech) rech.parentNode.insertBefore(pied, rech);
-      else if (!p && pied.parentNode === rech.parentNode && cadre.parentNode) cadre.parentNode.insertBefore(pied, cadre.nextSibling);
+      else if (!p && pied.parentNode === rech.parentNode && cadre.parentNode) {
+        const apres = document.querySelector(".hab-note") || cadre;   // sous la note des Outre-mer
+        apres.parentNode.insertBefore(pied, apres.nextSibling);
+      }
     }
     if (B_PLEIN) { B_PLEIN.innerHTML = p ? ICONE_SORTIR : ICONE_PLEIN; B_PLEIN.title = p ? "Quitter le plein écran" : "Plein écran";
                    B_PLEIN.setAttribute("aria-label", B_PLEIN.title); B_PLEIN.setAttribute("aria-pressed", String(p)); }

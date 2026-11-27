@@ -167,6 +167,11 @@ canvas.drag { cursor: grabbing; }
 }
 
 /* ---------- Pied : sources et signature (logo sur la carte ; méthodologie retirée le 2026-11-26) ---------- */
+/* note sur les Outre-mer, liée par un astérisque au titre de la légende (2026-11-27), juste au-dessus des sources */
+.hab-note { margin: 8px 0 0; font-size: 12px; font-weight: 300; line-height: 1.35; color: #000; }
+.hab-note + .hab-pied { margin-top: 3px; }
+.asterisque { margin-left: 1px; }
+.habillage:fullscreen :is(.hab-note, .asterisque), .habillage.plein :is(.hab-note, .asterisque) { display: none; }
 .hab-pied { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .hab-source { font-size: 12px; font-weight: 300; line-height: 1.35; color: #000; }   /* source en Light */
 .chrono { font-size: 11px; color: var(--doux); margin: 6px 0 0; }
