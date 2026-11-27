@@ -80,7 +80,7 @@ satellite ; en zoomant, chaque coupe avec son année et ses enjeux ; recherche d
 
 - Page : https://vert-le-media.github.io/cartes/coupes-rases/
 - (communes.html, ancienne adresse de la variante par commune, redirige vers la page.)
-- Sources : Canopée (CC BY-NC-ND) ; IGN (BD Forêt v2, orthophotos de la Géoplateforme chargées en direct) ; INPN (Natura 2000, parcs) ; EFFIS/Copernicus (zones brûlées, coupes dues aux incendies retirées).
+- Sources : Canopée (CC BY-NC-ND) ; IGN (BD Forêt v2, orthophotos de la Géoplateforme chargées en direct) ; INPN (Natura 2000, parcs) ; Effis/Copernicus (zones brûlées, coupes dues aux incendies retirées).
 - Fichiers générés dans le projet `2026-11_canope-coupes-rases` (dépôt privé `vert-le-media/coupes-rases`) par
   `06_donnees_carte_interactive.R`, `08_zones_erreur.R`, `10_taux_par_commune.R`, `11_contours_communes_carte.R`, `13_enjeux_coupes.R` et
   `12_tuiles_coupes.R`, puis copiés par `09_copier_depot_github.R` : ne pas les modifier ici.

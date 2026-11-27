@@ -216,7 +216,8 @@
   // couleur par année), l'année et les enjeux (script 13) sont dans l'infobulle. Rouge #ed1c24 choisi par Sébastien
   // le 2026-11-26 (avant : #f74141).
   const CI = window.COUPES_INDEX, POLY = !!CI, S_POLY = 0.025, FONDU_POLY = 0.45;
-  const ROUGE = "#ed1c24", ROUGE_ETIQ = "Coupe rase détectée (en zoomant)";
+  const ROUGE = "#ed1c24", ROUGE_ETIQ = "Coupe rase détectée (visible en zoomant)";
+  // rouge plein, sans transparence, sur la carte comme dans la légende (2026-11-27 ; avant : opacité 0,85)
   let polyVisibles = true, polySurvole = null;
   const CARREAUX = new Map();   // "i_j" -> { a, s, f, p, noms, z, n, chemins, bb, tous } (null pendant le chargement)
   const polyActif = () => POLY && polyVisibles && vue.s >= S_POLY;
@@ -262,7 +263,7 @@
     }
     c.save();
     c.setTransform(DPR * s, 0, 0, -DPR * s, -X0 * s * DPR, Ytop * s * DPR);
-    c.globalAlpha = 0.85; c.fillStyle = ROUGE;
+    c.globalAlpha = 1; c.fillStyle = ROUGE;
     for (const t of prets) c.fill(t.tous, "nonzero");
     c.globalAlpha = 1; c.lineJoin = "round";
     c.strokeStyle = "rgba(255,255,255,0.8)"; c.lineWidth = (s > 0.1 ? 1 : 0.6) / s;
@@ -1016,7 +1017,7 @@
     // « Pas de forêt » retiré de la légende (2026-11-20) : ces hexagones restent transparents (on voit le satellite)
     h += '</div><div class="leg-barre" id="leg-barre"></div>';
     if (POLY) h += `<div class="leg-poly"><button type="button" class="leg-item" data-k="p" aria-pressed="${polyVisibles}"${polyVisibles ? "" : " data-masquee"} title="Cliquer pour masquer / afficher">` +
-      carre(ROUGE, polyVisibles ? 0.85 : 0.12) + `<span>${ROUGE_ETIQ}</span></button></div>`;
+      carre(ROUGE, polyVisibles ? 1 : 0.12) + `<span>${ROUGE_ETIQ}</span></button></div>`;
     if (MOB.length) h += `<div class="leg-mob"><button type="button" class="leg-item" data-k="m" aria-pressed="${mobVisibles}"${mobVisibles ? "" : " data-masquee"} title="Cliquer pour afficher / masquer">` +
       `<img src="picto-contestation.svg" width="17" height="${Math.round(17 * PICTO_RATIO)}" alt=""${mobVisibles ? "" : ' style="opacity:.45"'}><span>${mobVisibles ? MOB_ETIQ : "Cliquez pour afficher les mobilisations contre les coupes rases"}</span></button></div>`;
     h += `<div class="leg-astuce">Cliquez sur une couleur pour masquer ou afficher ces ${COMMUNAL ? "communes" : "hexagones"}.</div>`;
