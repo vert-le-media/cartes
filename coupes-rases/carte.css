@@ -118,13 +118,35 @@ canvas.drag { cursor: grabbing; }
 .tooltip:has(.tt-enjeux) { max-width: min(300px, calc(100% - 16px)); }
 .tt-zone { margin-top: 5px; padding-top: 5px; border-top: 1px solid #dfe5e6; color: var(--doux); font-size: 11.5px; line-height: 1.35; }
 
-/* ---------- Plein écran (2026-11-26) ----------
-   API Fullscreen sur l'habillage (titre, légende, recherche et carte restent visibles) ; sans cette API (iPhone),
-   repli en CSS (.plein : habillage fixé sur toute la fenêtre). La hauteur de la carte est recalculée par carte.js. */
-.habillage:fullscreen, .habillage.plein { max-width: none; width: 100%; height: 100%; border: 0; border-radius: 0; overflow: auto; }
+/* ---------- Plein écran (2026-11-26, refait le 2026-11-27) ----------
+   La carte occupe tout l'écran ; titre, légende et recherche flottent DANS la carte, en haut à gauche, sur un
+   panneau blanc ; sources en bas à gauche. API Fullscreen sur l'habillage ; sans cette API (iPhone), repli en CSS
+   (.plein : habillage fixé sur toute la fenêtre). carte.js recalcule la taille de la carte. */
+.panneau { display: flex; flex-direction: column; }
+.habillage:fullscreen, .habillage.plein {
+  position: relative; display: block; max-width: none; width: 100%; height: 100%; margin: 0; padding: 0;
+  border: 0; border-radius: 0; overflow: hidden; background: #fff;
+}
 .habillage.plein { position: fixed; inset: 0; z-index: 1000; }
-.habillage:fullscreen .cadre, .habillage.plein .cadre { flex: 1 1 auto; min-height: 240px; height: auto !important; width: auto !important; align-self: stretch !important; }
-.habillage:fullscreen { background: #fff; padding: 14px 20px 10px; }
+.habillage:fullscreen .cadre, .habillage.plein .cadre {
+  position: absolute; inset: 0; width: auto !important; height: auto !important; border: 0; border-radius: 0;
+}
+.habillage:fullscreen .panneau, .habillage.plein .panneau {
+  position: absolute; z-index: 6; top: 12px; left: 12px; width: min(460px, calc(100% - 70px));
+  max-height: calc(100% - 70px); overflow: auto; padding: 12px 14px 4px;
+  background: rgba(255, 255, 255, .95); border-radius: 8px; box-shadow: 0 4px 18px rgba(0, 0, 0, .28);
+}
+.habillage:fullscreen .panneau .resultats, .habillage.plein .panneau .resultats { position: static; margin-top: 4px; }
+.habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { font-size: 20px; margin-bottom: 6px; }
+.habillage:fullscreen .hab-pied, .habillage.plein .hab-pied {
+  position: absolute; z-index: 6; left: 12px; bottom: 10px; margin: 0; max-width: calc(100% - 150px);
+  padding: 4px 8px; background: rgba(255, 255, 255, .88); border-radius: 4px;
+}
+.habillage:fullscreen .hab-source, .habillage.plein .hab-source { font-size: 11px; }
+@media (max-width: 760px) {
+  .habillage:fullscreen .panneau, .habillage.plein .panneau { top: 8px; left: 8px; width: calc(100% - 60px); padding: 10px 10px 2px; }
+  .habillage:fullscreen .hab-titre, .habillage.plein .hab-titre { font-size: 17px; }
+}
 
 .chargement {
   position: absolute; inset: 0; display: grid; place-items: center; color: var(--doux);

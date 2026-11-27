@@ -19,6 +19,8 @@
 <body>
 <div class="habillage">
 
+  <!-- panneau : titre, légende, recherche ; en plein écran il flotte sur la carte (2026-11-27) -->
+  <div class="panneau">
   <h3 class="hab-titre">Votre commune <span class="insecable">est-elle</span> touchée par les coupes rases&nbsp;?</h3>
 
   <!-- légende au-dessus de la carte : titre et classes du mode affiché (version « part du territoire » retirée le 2026-11-23 : part de la forêt seulement) -->
@@ -33,6 +35,7 @@
            aria-label="Cherchez votre commune" role="combobox" aria-expanded="false" aria-controls="res">
     <button id="effacer" type="button" class="effacer" aria-label="Effacer la recherche" hidden>×</button>
     <div class="resultats" id="res" role="listbox" hidden></div>
+  </div>
   </div>
 
   <div class="cadre" id="cadre">
@@ -49,7 +52,7 @@
   </div>
 
   <footer class="hab-pied">
-    <span class="hab-source">Sources&nbsp;: Canopée (CC BY-NC-ND)&nbsp;; IGN&nbsp;; INPN&nbsp;; Effis/Copernicus<br>Infographie&nbsp;: Sébastien Eid/Vert</span>
+    <span class="hab-source">Sources&nbsp;: Observatoire des coupes rases de l'ONG Canopée Forêts Vivantes (CC BY-NC-ND)&nbsp;; IGN&nbsp;; INPN&nbsp;; Effis/Copernicus<br>Infographie&nbsp;: Sébastien Eid/Vert</span>
   </footer>
 
 

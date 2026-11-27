@@ -318,7 +318,15 @@
   // marge autour de la France ; la légende est hors de la carte
   // marges autour de la France, en px : côtés et haut ; en bas, 8 px seulement pour ne jamais passer sous la limite
   // sud de la mosaïque satellite IGN (Y ≈ 6 004 000, 42 km sous la pointe de la Corse) — la légende est hors carte
-  const marges = () => { const m = W < 520 ? 14 : 20; return { m, haut: m, bas: 8 }; };
+  // gauche : en plein écran sur grand écran, la France se cale à droite du panneau flottant (titre, légende, recherche)
+  const marges = () => {
+    const m = W < 520 ? 14 : 20; let gauche = m;
+    if (W > 900 && estPlein()) {
+      const p = document.querySelector(".panneau"), rp = p && p.getBoundingClientRect && p.getBoundingClientRect(), rc = cadre.getBoundingClientRect();
+      if (rp && rp.right > 0 && rc && rc.left !== undefined) gauche = Math.max(m, rp.right - rc.left + 16);
+    }
+    return { m, gauche, haut: m, bas: 8 };
+  };
   function estPlein() {
     const h = document.querySelector(".habillage");
     return !!(document.fullscreenElement || document.webkitFullscreenElement) || !!(h && h.classList && h.classList.contains("plein"));
@@ -364,8 +372,8 @@
     const r = cadre.getBoundingClientRect();
     W = r.width; Hh = r.height; DPR = window.devicePixelRatio || 1;
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hh * DPR);
-    { const { m, haut, bas } = marges();   // (marges recalculées avec la largeur réelle du cadre)
-      sMin = Math.min((W - 2 * m) / (BB[2] - BB[0]), (Hh - haut - bas) / (BB[3] - BB[1])); }
+    { const { m, gauche, haut, bas } = marges();   // (marges recalculées avec la largeur réelle du cadre)
+      sMin = Math.min((W - gauche - m) / (BB[2] - BB[0]), (Hh - haut - bas) / (BB[3] - BB[1])); }
   }
   const vueFrance = () => contraindre({ cx: (BB[0] + BB[2]) / 2, cy: (BB[1] + BB[3]) / 2, s: sMin });
   // Vue bloquée dans le cadre : pas de dézoom au-delà de la France entière, et la fenêtre ne sort jamais
@@ -373,12 +381,12 @@
   // la fenêtre dans un sens, elle reste centrée dans ce sens.
   function contraindre(v) {
     v.s = Math.max(sMin, Math.min(S_MAX, v.s));
-    const { m, haut, bas } = marges(), mm = m / v.s;
+    const { m, gauche, haut, bas } = marges(), mm = m / v.s;
     const borne = (lo, hi, demi, x) => {
       const a = lo + demi, b = hi - demi;
       return a <= b ? Math.max(a, Math.min(b, x)) : (a + b) / 2;
     };
-    v.cx = borne(BB[0] - mm, BB[2] + mm, W / 2 / v.s, v.cx);
+    v.cx = borne(BB[0] - gauche / v.s, BB[2] + mm, W / 2 / v.s, v.cx);
     v.cy = borne(BB[1] - bas / v.s, BB[3] + haut / v.s, Hh / 2 / v.s, v.cy);
     return v;
   }
